@@ -1,0 +1,15 @@
+{
+  "model_id": "Qwen/Qwen2.5-7B-Instruct",
+  "model_revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+  "vllm_version": "0.11.0",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "dtype": "bfloat16",
+  "max_model_len": 8192,
+  "generation_config": "vllm",
+  "temperature": 0.0,
+  "seed": 42,
+  "max_tokens": 2048,
+  "max_chars": 2500,
+  "overlap_chars": 250,
+  "top_k": 6
+}

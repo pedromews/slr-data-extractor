@@ -1,69 +1,104 @@
 # Schema-based SLR data extraction
 
-Initial implementation skeleton for the *Gender and Beyond* case study.
+Modular pilot for the *Gender and Beyond* case study. Python 3.11.
+Parser → page JSON → chunking → lexical retrieval → local LLM → validation.
+Final evaluation and corpus-wide execution are intentionally not implemented.
 
-The pipeline is intentionally independent from ProfOlaf. It uses an
-OpenAI-compatible endpoint, so the same code can call locally served models
-through vLLM. The model is a configuration value; PDF processing, chunking,
-retrieval, prompts and validation remain constant between experimental runs.
-
-## Current scope
-
-1. Read page-aware text exported from a PDF.
-2. Build overlapping chunks without losing page provenance.
-3. Rank chunks independently for each extraction field.
-4. Ask an LLM for a schema-constrained extraction.
-5. Validate values and supporting evidence with Pydantic.
-6. Save one auditable JSON result per article and model.
-
-PDF parsing and the final evaluation module are deliberately left behind
-interfaces. The meeting must first fix the PDF parser, gold-standard
-normalization rules and metrics.
-
-## Files
-
-- `config/extraction_schema.json`: preliminary case-study schema.
-- `config/models.json`: proposed controlled model comparison.
-- `src/slr_extraction/models.py`: structured output models.
-- `src/slr_extraction/chunking.py`: deterministic page-aware chunking.
-- `src/slr_extraction/retrieval.py`: transparent lexical baseline retrieval.
-- `src/slr_extraction/pipeline.py`: extraction orchestration.
-- `tests/test_core.py`: unit tests that do not require an LLM.
-
-## Input format
-
-The pipeline currently accepts a JSON file containing page text:
-
-```json
-{
-  "study_id": "A1",
-  "title": "Paper title",
-  "pages": [
-    {"page": 1, "text": "First page..."},
-    {"page": 2, "text": "Second page..."}
-  ]
-}
-```
-
-Keeping PDF parsing separate makes it possible to evaluate extraction without
-silently changing the parser between models.
-
-## Run
+## Setup and tests
 
 ```bash
-export OPENAI_BASE_URL="http://127.0.0.1:8000/v1"
-export OPENAI_API_KEY="local"
-
-PYTHONPATH=src python -m slr_extraction.cli \
-  --input article_pages.json \
-  --schema config/extraction_schema.json \
-  --model Qwen/Qwen2.5-7B-Instruct \
-  --output result.json
+python3.11 -m venv .venv
+.venv/bin/python -m pip install -r requirements.lock.txt
+PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 ```
 
-## Test
+`requirements.txt` declares direct dependencies; `requirements.lock.txt` records
+exact versions tested in the client environment. Install vLLM in a separate
+Python 3.11 environment on PCAD; do not use the client lock to constrain vLLM.
+
+## Convert one PDF
 
 ```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
+PYTHONPATH=src .venv/bin/python -m slr_extraction.pdf_parser \
+  --input /absolute/path/paper.pdf \
+  --study-id pilot-bias-free \
+  --title "Bias-Free and Auto-Evolving Generative AI: Design Principles, Architectures, and Reinforcement Integration" \
+  --output data/pilot-bias-free.pages.json
 ```
 
+Output includes all physical pages (one-based), exact extracted text, statuses,
+heuristic section spans, source SHA-256, parser version, warnings and timing.
+Exit codes: 0 success; 1 failure; 2 JSON saved but review required. Existing
+outputs are never overwritten. No OCR; empty or failed pages block extraction.
+
+The page JSON remains compatible with `study_id`, `title`, and `pages` containing
+`page` and `text`. Additional metadata preserves provenance. No paper content is
+committed: `data/` and `runs/` are ignored by Git.
+
+## Prepare without a model
+
+```bash
+PYTHONPATH=src .venv/bin/python -m slr_extraction.cli \
+  --input data/pilot-bias-free.pages.json \
+  --config config/pilot.json \
+  --run-dir runs/pilot-bias-free-prepared-new \
+  --prepare-only
+```
+
+Saves page input, schema, configuration, Python package versions, source snapshot
+and hash, every chunk, selected/nonselected IDs and all eight exact requests.
+Use a new run directory each time. `prepared` does not mean inference or token
+preflight passed. No server is contacted in preparation mode.
+
+The extraction CLI now uses `--config` and `--run-dir` instead of the old
+`--model` and `--output` flags so every run has explicit settings and records.
+
+## PCAD pilot: RTX 4090 24 GB
+
+`config/pilot.json` selects Qwen2.5-7B-Instruct and an exact model revision.
+Other models remain configurable; comparison is not run automatically.
+
+In a separate server environment with Python 3.11 and `vllm==0.11.0`:
+
+```bash
+python scripts/serve_pilot.py \
+  --config config/pilot.json --log-dir runs/server-pilot-001
+```
+
+This launches BF16, context 8192, one sequence, 90% GPU memory utilization,
+`--generation-config vllm`, fixed model/tokenizer revisions and seed. Launch
+arguments, GPU information, package versions and server stdout/stderr are saved.
+Initial startup downloads weights if they are absent. Hardware/CUDA compatibility
+and successful GPU startup must still be verified on PCAD.
+
+In another terminal, use the client environment on the same host:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m slr_extraction.cli \
+  --input data/pilot-bias-free.pages.json \
+  --config config/pilot.json \
+  --run-dir runs/pilot-bias-free-001
+```
+
+Endpoint: `http://127.0.0.1:8000/v1`. No commercial API is used. The OpenAI SDK
+is only a client for the local compatible server. The runner verifies vLLM
+version and model ID, tokenizes all prompts, and aborts if any prompt plus output
+budget exceeds context. It never truncates or changes retrieval per model.
+
+Each field saves the raw HTTP response before parsing, validation output, elapsed
+time and errors. A failed run retains preceding fields and has status `failed`;
+it does not emit a successful article result. Successful runs save `result.json`.
+The declared model revision must be checked against the retained server launch
+log; `/models` alone cannot attest it.
+
+## Review before expansion
+
+Inspect PDF reading order, page/section evidence, qualifiers and retrieval
+coverage for this one article. `not_reported` means no support in selected
+passages, not proven absence from the whole paper. Sections are heuristic;
+null is valid. Exact text matching is not semantic entailment verification.
+
+See [technical review](docs/code_review.md) for fixes, provisional decisions and
+limitations. Map `pilot-bias-free` to the spreadsheet's A1–A10 identifier and
+confirm the source version before any final evaluation. Do not run all articles
+or compare model scores until this pilot has been manually validated.

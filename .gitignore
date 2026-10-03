@@ -12,3 +12,7 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+
+# Local paper text and experiment artifacts
+data/
+runs/

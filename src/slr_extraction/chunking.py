@@ -16,6 +16,7 @@ class Chunk:
     page_start: int
     page_end: int
     text: str
+    page_spans: tuple[tuple[int, int, int], ...] = ()
 
 
 def _clean(text: str) -> str:
@@ -39,44 +40,45 @@ def build_chunks(
     if overlap_chars < 0 or overlap_chars >= max_chars:
         raise ValueError("overlap_chars must be between zero and max_chars")
 
-    segments: list[tuple[int, str]] = []
+    # Keep page spans in the normalized document so overlap retains provenance.
+    parts: list[str] = []
+    spans: list[tuple[int, int, int]] = []
+    offset = 0
     for page in pages:
         cleaned = _clean(page.text)
-        if cleaned:
-            segments.append((page.page, cleaned))
+        if not cleaned:
+            continue
+        if parts:
+            parts.append(" ")
+            offset += 1
+        spans.append((offset, offset + len(cleaned), page.page))
+        parts.append(cleaned)
+        offset += len(cleaned)
 
+    document = "".join(parts)
     chunks: list[Chunk] = []
-    buffer = ""
-    page_start: int | None = None
-    page_end: int | None = None
-
-    def flush() -> None:
-        nonlocal buffer, page_start, page_end
-        if not buffer or page_start is None or page_end is None:
-            return
-        chunks.append(
-            Chunk(
-                chunk_id=f"chunk-{len(chunks) + 1:04d}",
-                page_start=page_start,
-                page_end=page_end,
-                text=buffer.strip(),
-            )
-        )
-        buffer = buffer[-overlap_chars:] if overlap_chars else ""
-        page_start = page_end if buffer else None
-
-    for page, text in segments:
-        cursor = 0
-        while cursor < len(text):
-            if page_start is None:
-                page_start = page
-            page_end = page
-            available = max_chars - len(buffer)
-            buffer += (" " if buffer else "") + text[cursor : cursor + available]
-            cursor += available
-            if len(buffer) >= max_chars:
-                flush()
-
-    flush()
+    start = 0
+    while start < len(document):
+        end = min(start + max_chars, len(document))
+        contributing_pages = [
+            page for page_start, page_end, page in spans
+            if page_start < end and page_end > start
+        ]
+        # A one-character window can contain only an inter-page separator.
+        # Attribute that separator to the preceding page.
+        if not contributing_pages:
+            contributing_pages = [next(
+                page for _, page_end, page in spans if page_end == start
+            )]
+        chunks.append(Chunk(
+            chunk_id=f"chunk-{len(chunks) + 1:04d}",
+            page_start=contributing_pages[0],
+            page_end=contributing_pages[-1],
+            text=document[start:end],
+            page_spans=tuple((max(a, start) - start, min(b, end) - start, page)
+                             for a, b, page in spans if a < end and b > start),
+        ))
+        if end == len(document):
+            break
+        start = end - overlap_chars
     return chunks
-

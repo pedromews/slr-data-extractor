@@ -1,0 +1,110 @@
+{
+  "schema_version": "0.1-draft",
+  "case_study": "Gender and Beyond",
+  "fields": [
+    {
+      "name": "bias_types",
+      "research_question": "RQ1",
+      "description": "Social bias types that the study empirically identifies or explicitly reports in an LLM-based system.",
+      "cardinality": "many",
+      "value_type": "controlled_or_open_term",
+      "examples": ["gender bias", "racial or ethnic bias", "age bias"],
+      "retrieval_terms": ["bias", "fairness", "stereotype", "discrimination", "gender", "race", "ethnicity", "age", "nationality", "disability"],
+      "rules": [
+        "Do not convert a general ethical concern into an observed bias.",
+        "Preserve the authors' term as raw_value and optionally provide a normalized_value.",
+        "Use reported_not_observed when the paper discusses a bias without empirically demonstrating it."
+      ]
+    },
+    {
+      "name": "se_tasks_or_contexts",
+      "research_question": "RQ1.1",
+      "description": "Software Engineering task or broader socio-technical SE context in which the bias is studied.",
+      "cardinality": "many",
+      "value_type": "structured_term",
+      "examples": ["code generation", "requirements engineering", "software engineer recruitment"],
+      "retrieval_terms": ["task", "software engineering", "code", "coding", "test", "requirements", "design", "recruitment", "hiring", "education"],
+      "rules": [
+        "Classify each item as technical_task or socio_technical_context.",
+        "Do not force recruitment, hiring or professional representation into a technical SDLC task."
+      ]
+    },
+    {
+      "name": "llm_systems",
+      "research_question": "RQ1.2",
+      "description": "LLMs, assistants or generative systems evaluated as subjects of the bias analysis.",
+      "cardinality": "many",
+      "value_type": "named_entity",
+      "examples": ["GPT-4", "GitHub Copilot", "Stable Diffusion XL"],
+      "retrieval_terms": ["model", "LLM", "assistant", "GPT", "Llama", "Mistral", "Copilot", "Stable Diffusion"],
+      "rules": [
+        "Distinguish subject_under_test from auxiliary_model.",
+        "A judge model is not a subject under test unless the paper evaluates its own bias."
+      ]
+    },
+    {
+      "name": "bias_sources",
+      "research_question": "RQ1.3",
+      "description": "Sources or origins of bias asserted or hypothesized by the study authors.",
+      "cardinality": "many",
+      "value_type": "claim",
+      "examples": ["imbalanced training data", "historical workforce imbalance", "prompt demographic cues"],
+      "retrieval_terms": ["source", "origin", "cause", "training data", "dataset", "historical", "prompt", "imbalance"],
+      "rules": [
+        "Record epistemic_status as demonstrated, author_hypothesis or background_claim.",
+        "Do not infer a cause merely because it is plausible."
+      ]
+    },
+    {
+      "name": "evaluation_methods",
+      "research_question": "RQ1.4",
+      "description": "Methods, datasets and measurements used to detect or evaluate bias.",
+      "cardinality": "many",
+      "value_type": "method_description",
+      "examples": ["counterfactual prompting", "metamorphic testing", "image generation and demographic classification"],
+      "retrieval_terms": ["method", "methodology", "experiment", "evaluate", "measure", "metric", "dataset", "prompt", "classification"],
+      "rules": [
+        "Separate the evaluation method from the study's conclusions.",
+        "Capture sample size or number of generated artifacts when explicitly reported."
+      ]
+    },
+    {
+      "name": "reported_impacts",
+      "research_question": "RQ1.5",
+      "description": "Impacts or consequences of bias explicitly reported by the study.",
+      "cardinality": "many",
+      "value_type": "claim",
+      "examples": ["reinforcement of stereotypes", "unequal recruitment outcomes"],
+      "retrieval_terms": ["impact", "consequence", "harm", "risk", "inequality", "stereotype", "discrimination"],
+      "rules": [
+        "Record whether an impact is empirically_observed, author_inference or general_background."
+      ]
+    },
+    {
+      "name": "manifestations",
+      "research_question": "Supplementary",
+      "description": "Specific observable form in which bias appears in model outputs or behavior.",
+      "cardinality": "many",
+      "value_type": "claim",
+      "examples": ["gendered variable names", "underrepresentation in generated images"],
+      "retrieval_terms": ["manifest", "output", "response", "image", "text", "code", "representation", "underrepresentation", "stereotype"],
+      "rules": [
+        "Describe the observable behavior, not only the broad bias category."
+      ]
+    },
+    {
+      "name": "mitigation_strategies",
+      "research_question": "Supplementary",
+      "description": "Bias mitigation strategies proposed, implemented or empirically tested by the study.",
+      "cardinality": "many",
+      "value_type": "claim",
+      "examples": ["fairness-aware prompting", "RLHF", "LoRA fine-tuning"],
+      "retrieval_terms": ["mitigation", "mitigate", "reduce bias", "fairness", "prompt engineering", "fine-tuning", "RLHF", "intervention"],
+      "rules": [
+        "Record intervention_status as proposed, implemented or empirically_tested.",
+        "An absence claim must be explicit and supported by the inspected evidence."
+      ]
+    }
+  ]
+}
+

@@ -1,0 +1,36 @@
+{
+  "comparison_question": "Effect of model capacity within one instruction-tuned model family",
+  "constant_settings": {
+    "dtype": "bfloat16",
+    "temperature": 0.0,
+    "max_model_len": 8192,
+    "generation_config": "vllm",
+    "endpoint_protocol": "OpenAI-compatible"
+  },
+  "core_models": [
+    {
+      "id": "Qwen/Qwen2.5-1.5B-Instruct",
+      "parameters": "1.54B",
+      "license": "Apache-2.0",
+      "role": "small-capacity condition"
+    },
+    {
+      "id": "Qwen/Qwen2.5-3B-Instruct",
+      "parameters": "3.09B",
+      "license": "qwen-research",
+      "role": "medium-capacity condition",
+      "decision_required": "Confirm that the license is acceptable; replace if necessary."
+    },
+    {
+      "id": "Qwen/Qwen2.5-7B-Instruct",
+      "parameters": "7.61B",
+      "license": "Apache-2.0",
+      "role": "large-capacity condition already validated on PCAD"
+    }
+  ],
+  "optional_extension": {
+    "description": "Cross-family replication after the core experiment",
+    "rule": "Choose one similarly sized instruction model that fits the same GPU and run it with identical pipeline settings."
+  }
+}
+

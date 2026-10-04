@@ -94,11 +94,50 @@ log; `/models` alone cannot attest it.
 ## Review before expansion
 
 Inspect PDF reading order, page/section evidence, qualifiers and retrieval
-coverage for this one article. `not_reported` means no support in selected
+coverage for this one article. `not_found_in_context` means no support in selected
 passages, not proven absence from the whole paper. Sections are heuristic;
 null is valid. Exact text matching is not semantic entailment verification.
 
-See [technical review](docs/code_review.md) for fixes, provisional decisions and
-limitations. Map `pilot-bias-free` to the spreadsheet's A1–A10 identifier and
+See [schema contract](docs/schema-contract.md) for configuration, migration and
+validation limits. Map `pilot-bias-free` to the spreadsheet's A1–A10 identifier and
 confirm the source version before any final evaluation. Do not run all articles
 or compare model scores until this pilot has been manually validated.
+
+
+## MVP schema
+
+The researcher-defined schema is `config/gender_and_beyond_schema.json`.
+`schema.py` provides a small Pydantic contract, without dynamic models or a
+separately maintained meta-schema file. All fields return lists of textual values,
+optional normalized text, configured qualifier dimensions and source evidence.
+
+```bash
+PYTHONPATH=src .venv/bin/python -m slr_extraction.schema config/gender_and_beyond_schema.json
+```
+
+The response structure is fixed across fields. Field names, qualifier dimensions
+and allowed options are checked after generation; invalid answers fail and remain
+in the raw audit records. Status is either `extracted` or `not_found_in_context`.
+Unresolved ambiguities go in `notes`; this does not replace manual review.
+
+Relations, value IDs, numeric/categorical types and advanced normalization policies
+are deferred. No evaluation metrics or corpus-wide execution are implemented.
+See [the MVP contract](docs/schema-contract.md).
+
+`config/pilot.json` is the source of execution parameters, including chunking,
+retrieval and generation. `top_k` means retrieved chunks; `sampling_top_k` is the
+vLLM sampling parameter. `config/models.json` only lists candidate models; it does
+not override the execution configuration. Low-level chunking/retrieval functions
+require explicit parameters rather than conflicting defaults.
+
+The simplified schema/output version is `2.0-mvp`, prompt version `3.0-mvp`.
+Previous run folders are preserved, but their formats/prompts are not equivalent.
+Prepare a new run before executing this version:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m slr_extraction.cli \
+  --input data/pilot-bias-free.pages.json \
+  --schema config/gender_and_beyond_schema.json \
+  --config config/pilot.json \
+  --run-dir runs/pilot-mvp-new --prepare-only
+```

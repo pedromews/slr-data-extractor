@@ -13,58 +13,34 @@ import sys
 import time
 from urllib.parse import urlparse
 
-import httpx
 from openai import OpenAI
 
 from .audit import Audit, write_json
-from .pipeline import ExtractionPipeline, PROMPT_VERSION
-from .schema import fingerprint
-from .models import OUTPUT_VERSION
+from ..validation.preflight import preflight
+from ..pipeline import ExtractionPipeline, PROMPT_VERSION
+from ..definitions.schema_definition import fingerprint
+from ..definitions.result_definition import OUTPUT_VERSION
 
 
 def code_hash():
     digest = hashlib.sha256()
-    for path in sorted(Path(__file__).parent.glob('*.py')):
-        digest.update(path.name.encode())
+    source_root = Path(__file__).resolve().parents[1]
+    for path in sorted(source_root.rglob('*.py')):
+        digest.update(path.relative_to(source_root).as_posix().encode())
         digest.update(path.read_bytes())
     return digest.hexdigest()
 
 
-def preflight(config, prepared, directory):
-    base = config['base_url'].rstrip('/')
-    root = base.removesuffix('/v1')
-    with httpx.Client(timeout=30, trust_env=False) as client:
-        response = client.get(root + '/version')
-        response.raise_for_status()
-        version = response.json()
-        write_json(directory / 'server-version.json', version)
-        if version.get('version') != config['vllm_version']:
-            raise ValueError('Server vLLM version differs from configured version')
-        response = client.get(base + '/models')
-        response.raise_for_status()
-        models = response.json()
-        write_json(directory / 'server-models.json', models)
-        if config['model_id'] not in [m['id'] for m in models['data']]:
-            raise ValueError('Configured model is not served')
-        for index, item in enumerate(prepared):
-            response = client.post(root + '/tokenize', json={
-                'model': config['model_id'], 'messages': item['request']['messages'],
-                'add_generation_prompt': True})
-            write_json(directory / f'field-{index + 1:02d}.tokenize.json',
-                       {'status_code': response.status_code, 'body': response.text})
-            response.raise_for_status()
-            tokens = response.json()
-            limit = min(config['max_model_len'], tokens['max_model_len'])
-            if tokens['count'] + config['max_tokens'] > limit:
-                raise ValueError(f"Context overflow for {item['field'].name}; "
-                                 'no truncation or model-dependent retrieval adjustment applied')
 
 
 def save_preparation(directory, pipeline, article):
     snapshot = directory / 'source'
     snapshot.mkdir()
-    for source in Path(__file__).parent.glob('*.py'):
-        (snapshot / source.name).write_bytes(source.read_bytes())
+    source_root = Path(__file__).resolve().parents[1]
+    for source in sorted(source_root.rglob('*.py')):
+        target = snapshot / source.relative_to(source_root)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(source.read_bytes())
     chunks, prepared = pipeline.prepare(article)
     write_json(directory / 'chunks.json', [asdict(c) for c in chunks])
     for index, item in enumerate(prepared):

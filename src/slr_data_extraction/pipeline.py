@@ -2,11 +2,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from openai import OpenAI
-from .chunking import PageText, build_chunks
-from .models import ArticleExtraction, FieldExtraction
-from .retrieval import rank_chunks
-from .schema import load_schema, fingerprint
-from .validation import validate_field
+from .chunking import PageText, build_chunks, rank_chunks
+from .definitions.result_definition import ArticleExtraction, FieldExtraction
+from .definitions.schema_definition import load_schema, fingerprint
+from .validation.evidence_validation import validate_field
 
 PROMPT_VERSION = '3.0-mvp'
 SYSTEM_PROMPT = """Extract data from a primary study for a systematic literature review.

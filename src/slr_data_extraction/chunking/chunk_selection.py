@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from .chunking import Chunk
+from .chunking_creation import Chunk
 
 
 def _terms(text: str) -> set[str]:

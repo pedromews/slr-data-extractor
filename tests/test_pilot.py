@@ -8,11 +8,11 @@ from unittest.mock import patch
 import httpx
 from openai import OpenAI
 
-from slr_extraction.audit import Audit
-from slr_extraction.cli import preflight
-from slr_extraction.models import FieldExtraction
-from slr_extraction.pipeline import ExtractionPipeline
-from slr_extraction.validation import validate_field
+from slr_data_extraction.execution.audit import Audit
+from slr_data_extraction.validation.preflight import preflight
+from slr_data_extraction.definitions.result_definition import FieldExtraction
+from slr_data_extraction.pipeline import ExtractionPipeline
+from slr_data_extraction.validation.evidence_validation import validate_field
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -124,7 +124,7 @@ class PilotTests(unittest.TestCase):
             self.assertEqual(request.url.path, '/tokenize')
             return httpx.Response(200, json={'count': 8000, 'max_model_len': 8192})
         client = httpx.Client(transport=httpx.MockTransport(handler))
-        with patch('slr_extraction.cli.httpx.Client', return_value=client):
+        with patch('slr_data_extraction.validation.preflight.httpx.Client', return_value=client):
             with self.assertRaisesRegex(ValueError, 'Context overflow'):
                 preflight(config, self.prepared, self.directory)
         self.assertEqual(self.prepared[0]['request'], original)

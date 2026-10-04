@@ -1,8 +1,7 @@
 import unittest
 
-from slr_extraction.chunking import Chunk, PageText, build_chunks
-from slr_extraction.models import Evidence, ExtractedValue, FieldExtraction
-from slr_extraction.retrieval import rank_chunks
+from slr_data_extraction.chunking import Chunk, PageText, build_chunks, rank_chunks
+from slr_data_extraction.definitions.result_definition import Evidence, ExtractedValue, FieldExtraction
 
 
 class CoreTests(unittest.TestCase):

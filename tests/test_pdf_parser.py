@@ -11,8 +11,8 @@ from unittest.mock import patch
 from pypdf import PdfWriter
 from pypdf.generic import DictionaryObject, NameObject, DecodedStreamObject
 
-from slr_extraction.pdf_parser import parse_pdf, section_spans
-from slr_extraction.chunking import PageText, build_chunks
+from slr_data_extraction.parsing.pdf_parser import parse_pdf, section_spans
+from slr_data_extraction.chunking import PageText, build_chunks
 
 
 def make_pdf(path, texts):
@@ -100,7 +100,7 @@ class ParserTests(unittest.TestCase):
     def test_cli_writes_json_and_signals_review(self):
         make_pdf(self.path, [None])
         output = Path(self.tmp.name) / 'pages.json'
-        command = [sys.executable, '-m', 'slr_extraction.pdf_parser', '--input', str(self.path),
+        command = [sys.executable, '-m', 'slr_data_extraction.parsing.pdf_parser', '--input', str(self.path),
                    '--output', str(output), '--study-id', 'TEST']
         result = subprocess.run(command, capture_output=True, text=True, env=os.environ.copy())
         self.assertEqual(result.returncode, 2, result.stderr)

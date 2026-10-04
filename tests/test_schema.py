@@ -7,9 +7,9 @@ import sys
 import tempfile
 import unittest
 
-from slr_extraction.models import FieldExtraction
-from slr_extraction.schema import ReviewSchema, fingerprint
-from slr_extraction.validation import validate_field
+from slr_data_extraction.definitions.result_definition import FieldExtraction
+from slr_data_extraction.definitions.schema_definition import ReviewSchema, fingerprint
+from slr_data_extraction.validation.evidence_validation import validate_field
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -37,7 +37,7 @@ class SchemaTests(unittest.TestCase):
         # No values is valid and does not need evidence.
         absent = FieldExtraction(field_name='finding', status='not_found_in_context', values=[])
         validate_field(absent, field, [], [])
-        from slr_extraction.chunking import PageText, build_chunks
+        from slr_data_extraction.chunking import PageText, build_chunks
         pages = [{'page': 1, 'text': 'A finding.'}]
         chunks = build_chunks([PageText(1, 'A finding.')], max_chars=100, overlap_chars=0)
         payload = {'field_name': 'finding', 'status': 'extracted', 'values': [{
@@ -70,7 +70,7 @@ class SchemaTests(unittest.TestCase):
             article.write_text(json.dumps({'study_id': 'TEST', 'title': 'Test',
                 'pages': [{'page': 1, 'text': 'Gender bias was observed.'}]}))
             run = Path(tmp) / 'run'
-            result = subprocess.run([sys.executable, '-m', 'slr_extraction.cli',
+            result = subprocess.run([sys.executable, '-m', 'slr_data_extraction.execution.cli',
                 '--input', str(article), '--run-dir', str(run), '--prepare-only'],
                 capture_output=True, text=True, cwd=ROOT)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -79,6 +79,18 @@ class SchemaTests(unittest.TestCase):
             self.assertEqual(manifest['schema_id'], 'gender_and_beyond')
             self.assertEqual(len(list(run.glob('*.request.json'))), 8)
             self.assertTrue((run / 'source/pipeline.py').exists())
+            source_root = ROOT / 'src/slr_data_extraction'
+            expected = {p.relative_to(source_root) for p in source_root.rglob('*.py')}
+            actual = {p.relative_to(run / 'source') for p in (run / 'source').rglob('*.py')}
+            self.assertEqual(actual, expected)
+            import hashlib
+            digest = hashlib.sha256()
+            for relative in sorted(expected):
+                self.assertEqual((run / 'source' / relative).read_bytes(),
+                                 (source_root / relative).read_bytes())
+                digest.update(relative.as_posix().encode())
+                digest.update((source_root / relative).read_bytes())
+            self.assertEqual(manifest['source_sha256'], digest.hexdigest())
             self.assertFalse((run / 'result.json').exists())
             requests = [json.loads(p.read_text()) for p in run.glob('*.request.json')]
             self.assertTrue(all(r['response_format'] == requests[0]['response_format'] for r in requests))

@@ -1,0 +1,255 @@
+{
+  "schema_id": "gender_and_beyond",
+  "schema_version": "2.0-mvp",
+  "title": "Gender and Beyond",
+  "fields": [
+    {
+      "name": "bias_types",
+      "definition": "Social bias types that the study empirically identifies or explicitly reports in an LLM-based system.",
+      "unit_of_extraction": "One explicitly supported item for bias_types",
+      "rules": [
+        "Do not convert a general ethical concern into an observed bias.",
+        "Preserve the authors' term as raw_value and optionally provide a normalized_value.",
+        "Use reported_not_observed when the paper discusses a bias without empirically demonstrating it.",
+        "Examples: gender bias; racial or ethnic bias; age bias",
+        "Preserve the original expression; normalize to a concise textual label only when defensible, otherwise use null."
+      ],
+      "retrieval_terms": [
+        "bias",
+        "fairness",
+        "stereotype",
+        "discrimination",
+        "gender",
+        "race",
+        "ethnicity",
+        "age",
+        "nationality",
+        "disability"
+      ],
+      "qualifiers": {
+        "evidence_status": {
+          "definition": "Interpretation of the extracted item: evidence_status",
+          "options": {
+            "empirically_observed": "empirically observed",
+            "reported_not_observed": "reported not observed"
+          }
+        }
+      }
+    },
+    {
+      "name": "se_tasks_or_contexts",
+      "definition": "Software Engineering task or broader socio-technical SE context in which the bias is studied.",
+      "unit_of_extraction": "One explicitly supported item for se_tasks_or_contexts",
+      "rules": [
+        "Classify each item as technical_task or socio_technical_context.",
+        "Do not force recruitment, hiring or professional representation into a technical SDLC task.",
+        "Examples: code generation; requirements engineering; software engineer recruitment",
+        "Preserve the original expression; normalize to a concise textual label only when defensible, otherwise use null."
+      ],
+      "retrieval_terms": [
+        "task",
+        "software engineering",
+        "code",
+        "coding",
+        "test",
+        "requirements",
+        "design",
+        "recruitment",
+        "hiring",
+        "education"
+      ],
+      "qualifiers": {
+        "context_type": {
+          "definition": "Interpretation of the extracted item: context_type",
+          "options": {
+            "technical_task": "technical task",
+            "socio_technical_context": "socio technical context"
+          }
+        }
+      }
+    },
+    {
+      "name": "llm_systems",
+      "definition": "LLMs, assistants or generative systems evaluated as subjects of the bias analysis.",
+      "unit_of_extraction": "One explicitly supported item for llm_systems",
+      "rules": [
+        "Distinguish subject_under_test from auxiliary_model.",
+        "A judge model is not a subject under test unless the paper evaluates its own bias.",
+        "Examples: GPT-4; GitHub Copilot; Stable Diffusion XL",
+        "Preserve the original expression; normalize to a concise textual label only when defensible, otherwise use null."
+      ],
+      "retrieval_terms": [
+        "model",
+        "LLM",
+        "assistant",
+        "GPT",
+        "Llama",
+        "Mistral",
+        "Copilot",
+        "Stable Diffusion"
+      ],
+      "qualifiers": {
+        "model_role": {
+          "definition": "Interpretation of the extracted item: model_role",
+          "options": {
+            "subject_under_test": "subject under test",
+            "auxiliary_model": "auxiliary model"
+          }
+        }
+      }
+    },
+    {
+      "name": "bias_sources",
+      "definition": "Sources or origins of bias asserted or hypothesized by the study authors.",
+      "unit_of_extraction": "One explicitly supported item for bias_sources",
+      "rules": [
+        "Set qualifiers.epistemic_status to demonstrated, author_hypothesis or background_claim.",
+        "Do not infer a cause merely because it is plausible.",
+        "Examples: imbalanced training data; historical workforce imbalance; prompt demographic cues",
+        "Preserve the original expression; normalize to a concise textual label only when defensible, otherwise use null."
+      ],
+      "retrieval_terms": [
+        "source",
+        "origin",
+        "cause",
+        "training data",
+        "dataset",
+        "historical",
+        "prompt",
+        "imbalance"
+      ],
+      "qualifiers": {
+        "epistemic_status": {
+          "definition": "Interpretation of the extracted item: epistemic_status",
+          "options": {
+            "demonstrated": "demonstrated",
+            "author_hypothesis": "author hypothesis",
+            "background_claim": "background claim"
+          }
+        }
+      }
+    },
+    {
+      "name": "evaluation_methods",
+      "definition": "Methods, datasets and measurements used to detect or evaluate bias.",
+      "unit_of_extraction": "One explicitly supported item for evaluation_methods",
+      "rules": [
+        "Separate the evaluation method from the study's conclusions.",
+        "Capture sample size or number of generated artifacts when explicitly reported.",
+        "Examples: counterfactual prompting; metamorphic testing; image generation and demographic classification",
+        "Preserve the original expression; normalize to a concise textual label only when defensible, otherwise use null."
+      ],
+      "retrieval_terms": [
+        "method",
+        "methodology",
+        "experiment",
+        "evaluate",
+        "measure",
+        "metric",
+        "dataset",
+        "prompt",
+        "classification"
+      ],
+      "qualifiers": {
+        "method_status": {
+          "definition": "Interpretation of the extracted item: method_status",
+          "options": {
+            "implemented": "implemented",
+            "proposed": "proposed",
+            "empirically_tested": "empirically tested"
+          }
+        }
+      }
+    },
+    {
+      "name": "reported_impacts",
+      "definition": "Impacts or consequences of bias explicitly reported by the study.",
+      "unit_of_extraction": "One explicitly supported item for reported_impacts",
+      "rules": [
+        "Record whether an impact is empirically_observed, author_inference or general_background.",
+        "Examples: reinforcement of stereotypes; unequal recruitment outcomes",
+        "Preserve the original expression; normalize to a concise textual label only when defensible, otherwise use null."
+      ],
+      "retrieval_terms": [
+        "impact",
+        "consequence",
+        "harm",
+        "risk",
+        "inequality",
+        "stereotype",
+        "discrimination"
+      ],
+      "qualifiers": {
+        "evidence_status": {
+          "definition": "Interpretation of the extracted item: evidence_status",
+          "options": {
+            "empirically_observed": "empirically observed",
+            "author_inference": "author inference",
+            "general_background": "general background"
+          }
+        }
+      }
+    },
+    {
+      "name": "manifestations",
+      "definition": "Specific observable form in which bias appears in model outputs or behavior.",
+      "unit_of_extraction": "One explicitly supported item for manifestations",
+      "rules": [
+        "Describe the observable behavior, not only the broad bias category.",
+        "Examples: gendered variable names; underrepresentation in generated images",
+        "Preserve the original expression; normalize to a concise textual label only when defensible, otherwise use null."
+      ],
+      "retrieval_terms": [
+        "manifest",
+        "output",
+        "response",
+        "image",
+        "text",
+        "code",
+        "representation",
+        "underrepresentation",
+        "stereotype"
+      ],
+      "qualifiers": {
+        "evidence_status": {
+          "definition": "Interpretation of the extracted item: evidence_status",
+          "options": {
+            "empirically_observed": "empirically observed",
+            "reported_not_observed": "reported not observed"
+          }
+        }
+      }
+    },
+    {
+      "name": "mitigation_strategies",
+      "definition": "Bias mitigation strategies proposed, implemented or empirically tested by the study.",
+      "unit_of_extraction": "One explicitly supported item for mitigation_strategies",
+      "rules": [
+        "Set qualifiers.intervention_status to proposed, implemented or empirically_tested.",
+        "An absence claim must be explicit and supported by the inspected evidence.",
+        "Examples: fairness-aware prompting; RLHF; LoRA fine-tuning",
+        "Preserve the original expression; normalize to a concise textual label only when defensible, otherwise use null."
+      ],
+      "retrieval_terms": [
+        "mitigation",
+        "mitigate",
+        "reduce bias",
+        "fairness",
+        "prompt engineering",
+        "fine-tuning",
+        "RLHF",
+        "intervention"
+      ],
+      "qualifiers": {
+        "intervention_status": {
+          "definition": "Interpretation of the extracted item: intervention_status",
+          "options": {
+            "proposed": "proposed",
+            "implemented": "implemented",
+            "empirically_tested": "empirically tested"
+          }
+        }
+      }
+    }
+  ]
+}

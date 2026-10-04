@@ -17,7 +17,9 @@ import httpx
 from openai import OpenAI
 
 from .audit import Audit, write_json
-from .pipeline import ExtractionPipeline
+from .pipeline import ExtractionPipeline, PROMPT_VERSION
+from .schema import fingerprint
+from .models import OUTPUT_VERSION
 
 
 def code_hash():
@@ -54,14 +56,30 @@ def preflight(config, prepared, directory):
             tokens = response.json()
             limit = min(config['max_model_len'], tokens['max_model_len'])
             if tokens['count'] + config['max_tokens'] > limit:
-                raise ValueError(f"Context overflow for {item['field']['name']}; "
+                raise ValueError(f"Context overflow for {item['field'].name}; "
                                  'no truncation or model-dependent retrieval adjustment applied')
+
+
+def save_preparation(directory, pipeline, article):
+    snapshot = directory / 'source'
+    snapshot.mkdir()
+    for source in Path(__file__).parent.glob('*.py'):
+        (snapshot / source.name).write_bytes(source.read_bytes())
+    chunks, prepared = pipeline.prepare(article)
+    write_json(directory / 'chunks.json', [asdict(c) for c in chunks])
+    for index, item in enumerate(prepared):
+        write_json(directory / f'field-{index + 1:02d}.request.json', item['request'])
+    write_json(directory / 'retrieval.json', [
+        {'field': item['field'].name, 'selected': [c.chunk_id for c in item['selected']],
+         'not_selected': [c.chunk_id for c in chunks if c not in item['selected']]}
+        for item in prepared])
+    return chunks, prepared
 
 
 def main():
     parser = argparse.ArgumentParser(description='Prepare or execute one auditable local-model pilot.')
     parser.add_argument('--input', required=True)
-    parser.add_argument('--schema', default='config/extraction_schema.json')
+    parser.add_argument('--schema', default='config/gender_and_beyond_schema.json')
     parser.add_argument('--config', default='config/pilot.json')
     parser.add_argument('--run-dir', required=True)
     parser.add_argument('--prepare-only', action='store_true')
@@ -85,22 +103,13 @@ def main():
         host = urlparse(config['base_url']).hostname
         if host not in {'127.0.0.1', 'localhost', '::1'}:
             raise ValueError('Pilot endpoint must be local (use an SSH tunnel if necessary)')
-        options = {k: config[k] for k in ['top_k', 'temperature', 'max_chars',
-                                          'overlap_chars', 'max_tokens', 'seed']}
-        pipeline = ExtractionPipeline(args.schema, config['model_id'], **options)
+        pipeline = ExtractionPipeline(args.schema, config)
         write_json(directory / 'schema.json', pipeline.schema)
-        snapshot = directory / 'source'
-        snapshot.mkdir()
-        for source in Path(__file__).parent.glob('*.py'):
-            (snapshot / source.name).write_bytes(source.read_bytes())
-        chunks, prepared = pipeline.prepare(article)
-        write_json(directory / 'chunks.json', [asdict(c) for c in chunks])
-        for index, item in enumerate(prepared):
-            write_json(directory / f'field-{index + 1:02d}.request.json', item['request'])
-        write_json(directory / 'retrieval.json', [
-            {'field': item['field']['name'], 'selected': [c.chunk_id for c in item['selected']],
-             'not_selected': [c.chunk_id for c in chunks if c not in item['selected']]}
-            for item in prepared])
+        manifest.update(schema_id=pipeline.review.schema_id,
+                        schema_version=pipeline.review.schema_version,
+                        schema_sha256=fingerprint(pipeline.schema),
+                        output_version=OUTPUT_VERSION, prompt_version=PROMPT_VERSION)
+        chunks, prepared = save_preparation(directory, pipeline, article)
         if args.prepare_only:
             manifest['status'] = 'prepared'
         else:

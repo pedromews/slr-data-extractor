@@ -9,7 +9,7 @@ def _terms(text: str) -> set[str]:
     return set(re.findall(r"[a-z0-9][a-z0-9_-]+", text.lower()))
 
 
-def rank_chunks(chunks: list[Chunk], query_terms: list[str], top_k: int = 6) -> list[Chunk]:
+def rank_chunks(chunks: list[Chunk], query_terms: list[str], top_k: int) -> list[Chunk]:
     """Transparent lexical retrieval baseline with stable tie-breaking."""
     if top_k <= 0:
         raise ValueError("top_k must be positive")

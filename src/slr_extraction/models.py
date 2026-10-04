@@ -1,73 +1,54 @@
-from __future__ import annotations
-
+"""Fixed textual output format for the initial pilot."""
 from typing import Literal
-
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+OUTPUT_VERSION = '2.0-mvp'
 
-class Evidence(BaseModel):
-    model_config = ConfigDict(extra="forbid")
 
-    quote: str = Field(min_length=1, description="Verbatim supporting passage")
+class Output(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+
+
+class Evidence(Output):
+    quote: str = Field(min_length=1, pattern=r'\S')
     page_start: int = Field(ge=1)
     page_end: int = Field(ge=1)
     section: str | None = None
     chunk_id: str = Field(min_length=1)
 
-    @model_validator(mode="after")
-    def valid_page_range(self) -> "Evidence":
+    @model_validator(mode='after')
+    def valid_page_range(self):
         if self.page_end < self.page_start:
-            raise ValueError("page_end must be greater than or equal to page_start")
+            raise ValueError('page_end must be greater than or equal to page_start')
         return self
 
 
-class ExtractedValue(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    raw_value: str = Field(min_length=1)
-    normalized_value: str | None = None
-    qualifier: Literal[
-        "empirically_observed",
-        "reported_not_observed",
-        "author_hypothesis",
-        "demonstrated",
-        "author_inference",
-        "general_background",
-        "background_claim",
-        "proposed",
-        "implemented",
-        "empirically_tested",
-        "subject_under_test",
-        "auxiliary_model",
-        "technical_task",
-        "socio_technical_context",
-        "not_applicable",
-        "unspecified",
-    ] = "unspecified"
+class ExtractedValue(Output):
+    raw_value: str = Field(min_length=1, pattern=r'\S')
+    normalized_value: str | None
+    qualifiers: dict[str, str]
     evidence: list[Evidence] = Field(min_length=1)
 
 
-class FieldExtraction(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class FieldExtraction(Output):
     field_name: str
-    values: list[ExtractedValue] = Field(default_factory=list)
-    not_reported: bool = False
+    status: Literal['extracted', 'not_found_in_context']
+    values: list[ExtractedValue]
     notes: str | None = None
 
-    @model_validator(mode="after")
-    def consistent_absence(self) -> "FieldExtraction":
-        if self.not_reported and self.values:
-            raise ValueError("not_reported cannot be true when values are present")
+    @model_validator(mode='after')
+    def consistent_status(self):
+        if (self.status == 'extracted') != bool(self.values):
+            raise ValueError('Only extracted status has values, and it must have at least one')
         return self
 
 
-class ArticleExtraction(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class ArticleExtraction(Output):
+    output_version: Literal['2.0-mvp'] = OUTPUT_VERSION
+    schema_id: str
     schema_version: str
+    schema_sha256: str
     study_id: str
     title: str
     model_id: str
     fields: list[FieldExtraction]
-

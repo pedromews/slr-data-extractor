@@ -1,0 +1,84 @@
+"""Small fixtures live in tests, independent of documentation/examples."""
+import copy
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+
+from slr_extraction.models import FieldExtraction
+from slr_extraction.schema import ReviewSchema, fingerprint
+from slr_extraction.validation import validate_field
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class SchemaTests(unittest.TestCase):
+    def setUp(self):
+        self.raw = {'schema_id': 'fixture', 'schema_version': '1', 'title': 'Test review',
+                    'fields': [{'name': 'finding', 'definition': 'Reported finding',
+                                'unit_of_extraction': 'One claim', 'retrieval_terms': ['finding'],
+                                'qualifiers': {'role': {'definition': 'Role of finding',
+                                    'options': {'observed': 'Empirical', 'proposed': 'Proposal'}}}}]}
+
+    def test_invalid_schemas(self):
+        cases = []
+        duplicate = copy.deepcopy(self.raw); duplicate['fields'] *= 2; cases.append(duplicate)
+        unknown = copy.deepcopy(self.raw); unknown['relations'] = []; cases.append(unknown)
+        blank = copy.deepcopy(self.raw); blank['fields'][0]['definition'] = ' '; cases.append(blank)
+        empty = copy.deepcopy(self.raw); empty['fields'][0]['retrieval_terms'] = []; cases.append(empty)
+        for case in cases:
+            with self.subTest(case=case), self.assertRaises(ValueError):
+                ReviewSchema.model_validate(case)
+
+    def test_qualifier_dimensions_and_options(self):
+        field = ReviewSchema.model_validate(self.raw).fields[0]
+        # No values is valid and does not need evidence.
+        absent = FieldExtraction(field_name='finding', status='not_found_in_context', values=[])
+        validate_field(absent, field, [], [])
+        from slr_extraction.chunking import PageText, build_chunks
+        pages = [{'page': 1, 'text': 'A finding.'}]
+        chunks = build_chunks([PageText(1, 'A finding.')], max_chars=100, overlap_chars=0)
+        payload = {'field_name': 'finding', 'status': 'extracted', 'values': [{
+            'raw_value': 'finding', 'normalized_value': None, 'qualifiers': {'role': 'observed'},
+            'evidence': [{'quote': 'A finding.', 'page_start': 1, 'page_end': 1,
+                          'chunk_id': chunks[0].chunk_id}]}]}
+        validate_field(FieldExtraction.model_validate(payload), field, chunks, pages)
+        for qualifiers in [{}, {'role': 'wrong'}, {'role': 'observed', 'extra': 'x'}]:
+            bad = copy.deepcopy(payload); bad['values'][0]['qualifiers'] = qualifiers
+            with self.subTest(qualifiers=qualifiers), self.assertRaises(ValueError):
+                validate_field(FieldExtraction.model_validate(bad), field, chunks, pages)
+        for value in [24, True, 2.5]:
+            bad = copy.deepcopy(payload); bad['values'][0]['normalized_value'] = value
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                FieldExtraction.model_validate(bad)
+
+    def test_only_two_states(self):
+        for status in ['ambiguous', 'not_applicable', 'extracted']:
+            with self.subTest(status=status), self.assertRaises(ValueError):
+                FieldExtraction(field_name='finding', status=status, values=[])
+
+    def test_fingerprint(self):
+        self.assertEqual(fingerprint(self.raw), fingerprint(dict(reversed(list(self.raw.items())))))
+        changed = copy.deepcopy(self.raw); changed['fields'][0]['definition'] += ' changed'
+        self.assertNotEqual(fingerprint(self.raw), fingerprint(changed))
+
+    def test_cli_prepares_renamed_schema_without_server(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            article = Path(tmp) / 'article.json'
+            article.write_text(json.dumps({'study_id': 'TEST', 'title': 'Test',
+                'pages': [{'page': 1, 'text': 'Gender bias was observed.'}]}))
+            run = Path(tmp) / 'run'
+            result = subprocess.run([sys.executable, '-m', 'slr_extraction.cli',
+                '--input', str(article), '--run-dir', str(run), '--prepare-only'],
+                capture_output=True, text=True, cwd=ROOT)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            manifest = json.loads((run / 'manifest.json').read_text())
+            self.assertEqual(manifest['status'], 'prepared')
+            self.assertEqual(manifest['schema_id'], 'gender_and_beyond')
+            self.assertEqual(len(list(run.glob('*.request.json'))), 8)
+            self.assertTrue((run / 'source/pipeline.py').exists())
+            self.assertFalse((run / 'result.json').exists())
+            requests = [json.loads(p.read_text()) for p in run.glob('*.request.json')]
+            self.assertTrue(all(r['response_format'] == requests[0]['response_format'] for r in requests))

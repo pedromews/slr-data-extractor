@@ -56,7 +56,7 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(article['source']['sha256'], hashlib.sha256(self.path.read_bytes()).hexdigest())
         self.assertEqual(article['title'], 'Fixture paper')
         self.assertTrue(article['requires_review'])
-        chunks = build_chunks([PageText(p['page'], p['text']) for p in article['pages']])
+        chunks = build_chunks([PageText(p['page'], p['text']) for p in article['pages']], max_chars=6000, overlap_chars=600)
         self.assertEqual((chunks[0].page_start, chunks[0].page_end), (1, 3))
 
     def test_sections_cover_exact_text_and_continue_across_pages(self):

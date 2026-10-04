@@ -42,7 +42,7 @@ class CoreTests(unittest.TestCase):
         self.assertEqual([c.text for c in chunks], ["abcdefghij"])
 
     def test_empty_input(self):
-        self.assertEqual(build_chunks([]), [])
+        self.assertEqual(build_chunks([], max_chars=100, overlap_chars=10), [])
 
     def test_invalid_chunking_parameters(self):
         for maximum, overlap in [(0, 0), (10, -1), (10, 10)]:
@@ -69,11 +69,11 @@ class CoreTests(unittest.TestCase):
 
     def test_absence_and_values_are_mutually_exclusive(self):
         value = ExtractedValue(
-            raw_value="gender bias",
+            raw_value="gender bias", normalized_value=None, qualifiers={},
             evidence=[Evidence(quote="gender bias", page_start=1, page_end=1, chunk_id="c1")],
         )
         with self.assertRaises(ValueError):
-            FieldExtraction(field_name="bias_types", values=[value], not_reported=True)
+            FieldExtraction(field_name="bias_types", values=[value], status="not_found_in_context")
 
 
 if __name__ == "__main__":

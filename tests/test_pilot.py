@@ -26,18 +26,20 @@ class PilotTests(unittest.TestCase):
             {'page': 1, 'text': 'Background only.', 'status': 'ok', 'sections': []},
             {'page': 2, 'text': 'gender bias observed', 'status': 'ok', 'sections': [
                 {'start': 0, 'end': 20, 'section': 'Results'}]}]}
-        self.pipeline = ExtractionPipeline(ROOT / 'config/extraction_schema.json', 'test-model')
+        config = json.loads((ROOT / 'config/pilot.json').read_text())
+        config['model_id'] = 'test-model'
+        self.pipeline = ExtractionPipeline(ROOT / 'config/gender_and_beyond_schema.json', config)
         self.chunks, self.prepared = self.pipeline.prepare(self.article)
         self.field = self.prepared[0]['field']
-        self.value = {'field_name': 'bias_types', 'values': [{
+        self.value = {'field_name': 'bias_types', 'status': 'extracted', 'values': [{
             'raw_value': 'gender bias', 'normalized_value': 'gender_bias',
-            'qualifier': 'empirically_observed', 'evidence': [{
+            'qualifiers': {'evidence_status': 'empirically_observed'}, 'evidence': [{
                 'quote': 'gender bias', 'page_start': 2, 'page_end': 2,
                 'chunk_id': self.chunks[0].chunk_id, 'section': 'Results'}]}]}
 
     def test_valid_evidence_and_section(self):
         result = FieldExtraction.model_validate(self.value)
-        self.assertIs(validate_field(result, self.field, self.chunks, self.article['pages']), result)
+        self.assertEqual(validate_field(result, self.field, self.chunks, self.article['pages']), result)
 
     def test_invalid_evidence_is_rejected(self):
         for change in [dict(page_start=1, page_end=1), dict(quote='invented'),
@@ -54,7 +56,7 @@ class PilotTests(unittest.TestCase):
         for field, qualifier in [('llm_systems', 'empirically_observed'), ('bias_types', 'proposed')]:
             value = copy.deepcopy(self.value)
             value['field_name'] = field
-            value['values'][0]['qualifier'] = qualifier
+            value['values'][0]['qualifiers'] = {'evidence_status': qualifier}
             with self.assertRaises(ValueError):
                 validate_field(FieldExtraction.model_validate(value), self.field,
                                self.chunks, self.article['pages'])
@@ -128,8 +130,10 @@ class PilotTests(unittest.TestCase):
         self.assertEqual(self.prepared[0]['request'], original)
 
     def test_schema_qualifiers_are_accepted_by_output_model(self):
-        for field in self.pipeline.schema['fields']:
-            for qualifier in field['qualifiers']:
-                value = copy.deepcopy(self.value)
-                value['values'][0]['qualifier'] = qualifier
-                FieldExtraction.model_validate(value)
+        for field in self.pipeline.review.fields:
+            for dimension, definition in field.qualifiers.items():
+                for option in definition.options:
+                    value = copy.deepcopy(self.value)
+                    value['field_name'] = field.name
+                    value['values'][0]['qualifiers'] = {dimension: option}
+                    validate_field(FieldExtraction.model_validate(value), field, self.chunks, self.article['pages'])

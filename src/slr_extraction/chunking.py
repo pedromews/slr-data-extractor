@@ -26,8 +26,8 @@ def _clean(text: str) -> str:
 def build_chunks(
     pages: list[PageText],
     *,
-    max_chars: int = 6000,
-    overlap_chars: int = 600,
+    max_chars: int,
+    overlap_chars: int,
 ) -> list[Chunk]:
     """Create deterministic chunks and retain the contributing page range.
 

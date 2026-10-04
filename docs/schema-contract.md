@@ -1,7 +1,7 @@
 # MVP contract
 
 The review schema is `config/gender_and_beyond_schema.json`. Researchers define
-fields and their semantics; `schema.py` validates a small Pydantic contract.
+fields and their semantics; `definitions/schema_definition.py` validates a small Pydantic contract.
 There is no separately maintained meta-schema file or dynamic model compilation.
 
 ## Review definition

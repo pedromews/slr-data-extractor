@@ -19,7 +19,7 @@ Python 3.11 environment on PCAD; do not use the client lock to constrain vLLM.
 ## Convert one PDF
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m slr_extraction.pdf_parser \
+PYTHONPATH=src .venv/bin/python -m slr_data_extraction.parsing.pdf_parser \
   --input /absolute/path/paper.pdf \
   --study-id pilot-bias-free \
   --title "Bias-Free and Auto-Evolving Generative AI: Design Principles, Architectures, and Reinforcement Integration" \
@@ -38,7 +38,7 @@ committed: `data/` and `runs/` are ignored by Git.
 ## Prepare without a model
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m slr_extraction.cli \
+PYTHONPATH=src .venv/bin/python -m slr_data_extraction.execution.cli \
   --input data/pilot-bias-free.pages.json \
   --config config/pilot.json \
   --run-dir runs/pilot-bias-free-prepared-new \
@@ -74,7 +74,7 @@ and successful GPU startup must still be verified on PCAD.
 In another terminal, use the client environment on the same host:
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m slr_extraction.cli \
+PYTHONPATH=src .venv/bin/python -m slr_data_extraction.execution.cli \
   --input data/pilot-bias-free.pages.json \
   --config config/pilot.json \
   --run-dir runs/pilot-bias-free-001
@@ -107,12 +107,12 @@ or compare model scores until this pilot has been manually validated.
 ## MVP schema
 
 The researcher-defined schema is `config/gender_and_beyond_schema.json`.
-`schema.py` provides a small Pydantic contract, without dynamic models or a
+`definitions/schema_definition.py` provides a small Pydantic contract, without dynamic models or a
 separately maintained meta-schema file. All fields return lists of textual values,
 optional normalized text, configured qualifier dimensions and source evidence.
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m slr_extraction.schema config/gender_and_beyond_schema.json
+PYTHONPATH=src .venv/bin/python -m slr_data_extraction.definitions.schema_definition config/gender_and_beyond_schema.json
 ```
 
 The response structure is fixed across fields. Field names, qualifier dimensions
@@ -135,9 +135,63 @@ Previous run folders are preserved, but their formats/prompts are not equivalent
 Prepare a new run before executing this version:
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m slr_extraction.cli \
+PYTHONPATH=src .venv/bin/python -m slr_data_extraction.execution.cli \
   --input data/pilot-bias-free.pages.json \
   --schema config/gender_and_beyond_schema.json \
   --config config/pilot.json \
   --run-dir runs/pilot-mvp-new --prepare-only
 ```
+
+
+## Chunking package
+
+- `src/slr_data_extraction/chunking/chunking_creation.py`: page-aware chunk creation.
+- `src/slr_data_extraction/chunking/chunk_selection.py`: lexical chunk ranking and selection.
+- `src/slr_data_extraction/chunking/__init__.py`: exports `PageText`, `Chunk`,
+  `build_chunks` and `rank_chunks` for callers.
+
+Source snapshots and code hashes include nested Python modules.
+
+
+## Data definitions
+
+- `src/slr_data_extraction/definitions/schema_definition.py`: the researcher schema
+  contract and its validation command.
+- `src/slr_data_extraction/definitions/result_definition.py`: the fixed extraction
+  output structure and its consistency rules.
+
+Imports use the explicit module paths under `slr_data_extraction.definitions`.
+
+
+## Package layout
+
+```text
+src/slr_data_extraction/
+├── __init__.py
+├── pipeline.py
+├── definitions/
+│   ├── __init__.py
+│   ├── schema_definition.py
+│   └── result_definition.py
+├── parsing/
+│   ├── __init__.py
+│   └── pdf_parser.py
+├── chunking/
+│   ├── __init__.py
+│   ├── chunking_creation.py
+│   └── chunk_selection.py
+├── validation/
+│   ├── __init__.py
+│   ├── evidence_validation.py
+│   └── preflight.py
+└── execution/
+    ├── __init__.py
+    ├── cli.py
+    └── audit.py
+```
+
+`pipeline.py` coordinates extraction. `validation/preflight.py` checks the server
+and token budget; `validation/evidence_validation.py` checks field qualifiers and
+source evidence. `execution/cli.py` handles run orchestration and artifact saving.
+Source snapshots and hashes cover the entire package, not just `execution/`.
+The vLLM launcher remains in `scripts/serve_pilot.py` outside the client package.

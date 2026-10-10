@@ -26,13 +26,13 @@ class PilotTests(unittest.TestCase):
             {'page': 1, 'text': 'Background only.', 'status': 'ok', 'sections': []},
             {'page': 2, 'text': 'gender bias observed', 'status': 'ok', 'sections': [
                 {'start': 0, 'end': 20, 'section': 'Results'}]}]}
-        config = json.loads((ROOT / 'config/pilot.json').read_text())
+        config = json.loads((ROOT / 'config/models/qwen.json').read_text())
         config['model_id'] = 'test-model'
         self.pipeline = ExtractionPipeline(ROOT / 'config/gender_and_beyond_schema.json', config)
         self.chunks, self.prepared = self.pipeline.prepare(self.article)
         self.field = self.prepared[0]['field']
         self.value = {'field_name': 'bias_types', 'status': 'extracted', 'values': [{
-            'raw_value': 'gender bias', 'normalized_value': 'gender_bias',
+            'value': 'gender bias',
             'evidence': [{
                 'quote': 'gender bias', 'page_start': 2, 'page_end': 2,
                 'chunk_id': self.chunks[0].chunk_id, 'section': 'Results'}]}]}
@@ -87,7 +87,7 @@ class PilotTests(unittest.TestCase):
     def test_raw_response_and_validated_result_are_saved(self):
         self.pipeline.client = self.client(json.dumps(self.value))
         fields = self.pipeline.extract(self.prepared[:1], self.article['pages'], Audit(self.directory))
-        self.assertEqual(fields[0].values[0].raw_value, 'gender bias')
+        self.assertEqual(fields[0].values[0].value, 'gender bias')
         self.assertTrue((self.directory / 'field-01.raw.txt').exists())
         self.assertTrue((self.directory / 'field-01.validated.json').exists())
         self.assertEqual(json.loads((self.directory / 'field-01.status.json').read_text())['status'], 'completed')
@@ -111,7 +111,7 @@ class PilotTests(unittest.TestCase):
         self.assertEqual(json.loads((self.directory / 'field-01.status.json').read_text())['status'], 'failed')
 
     def test_context_overflow_fails_without_truncating(self):
-        config = json.loads((ROOT / 'config/pilot.json').read_text())
+        config = json.loads((ROOT / 'config/models/qwen.json').read_text())
         config['model_id'] = 'test-model'
         original = copy.deepcopy(self.prepared[0]['request'])
         def handler(request):

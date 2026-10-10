@@ -10,13 +10,12 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 # Minimal valid JSON:
 # {
 #   "schema_id": "gender_and_beyond",
-#   "schema_version": "3.0-mvp",
+#   "schema_version": "4.0-mvp",
 #   "title": "Gender and Beyond",
 #   "fields": [
 #     {
 #       "name": "bias_types",
 #       "definition": "Bias types explicitly reported by the study.",
-#       "unit_of_extraction": "One bias type",
 #       "retrieval_terms": ["bias", "fairness"]
 #     }
 #   ]
@@ -49,7 +48,6 @@ class Contract(BaseModel):
 class FieldDefinition(Contract):
     name: Identifier
     definition: Text
-    unit_of_extraction: Text
     retrieval_terms: list[Text] = Field(min_length=1)
 
 

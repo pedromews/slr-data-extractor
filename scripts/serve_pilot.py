@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--config', default='config/pilot.json')
+parser.add_argument('--config', default='config/models/qwen.json')
 parser.add_argument('--log-dir', required=True)
 args = parser.parse_args()
 config = json.loads(Path(args.config).read_text())

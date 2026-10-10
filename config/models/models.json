@@ -25,5 +25,5 @@
     "description": "Cross-family replication after the core experiment",
     "rule": "Choose one similarly sized instruction model that fits the same GPU and run it with identical pipeline settings."
   },
-  "configuration_note": "Candidate list only. All executable settings live in pilot.json."
+  "configuration_note": "Candidate list only. All executable settings live in config/models/qwen.json."
 }

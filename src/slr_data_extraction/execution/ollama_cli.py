@@ -51,7 +51,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--input', required=True)
     parser.add_argument('--schema', default='config/gender_and_beyond_schema.json')
-    parser.add_argument('--config', default='config/pilot-ollama.json')
+    parser.add_argument('--config', default='config/models/ollama.json')
     parser.add_argument('--run-dir', required=True)
     args = parser.parse_args()
     directory = Path(args.run_dir)

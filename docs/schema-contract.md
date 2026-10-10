@@ -13,20 +13,19 @@ Each field contains:
 
 - `name`: a stable identifier.
 - `definition`: an operational definition.
-- `unit_of_extraction`: what one item in the value list represents.
 - `retrieval_terms`: terms used by lexical retrieval.
 
-The contract contains no topic-specific concepts. Researchers supply the four
+The contract contains no topic-specific concepts. Researchers supply the three
 field properties above. The generic prompt handles atomic extraction, literal
 evidence and preservation of meaning. Proposed, implemented and empirically
 evaluated claims must remain distinguishable in the textual values.
-The removed properties rules and qualifiers are rejected rather than ignored.
+The removed properties unit_of_extraction, rules and qualifiers are rejected rather than ignored.
 
 ## Fixed output
 
 Each field returns `field_name`, `status`, `values` and optional `notes`.
 
-Each value contains textual `raw_value`, textual or null `normalized_value` and one or more evidence entries. Each evidence entry records quote,
+Each item contains a nonempty textual `value` and one or more supporting evidence entries. Each evidence entry records quote,
 page_start, page_end, chunk_id and optional section. There are no value IDs or
 relations.
 
@@ -49,13 +48,14 @@ semantically supports the claim; interpretive rules require human review.
 
 ## Parameters and traceability
 
-`pilot.json` centralizes execution parameters. `models.json` is only a candidate
+`config/models/qwen.json` and `config/models/ollama.json` contain execution parameters.
+`config/models/models.json` is only a candidate
 list. Each run saves the effective schema and configuration, the PDF hash in the
 input, prompts, chunks and retrieval selection, declared model revision, raw
 responses, errors, timings, environment and a source snapshot. This also captures
 uncommitted code changes. Context checks remain mandatory before generation.
 
-Current versions: schema/output 3.1-mvp, prompt 4.1-mvp. Earlier run directories
+Current versions: schema/output 4.0-mvp, prompt 5.0-mvp. Earlier run directories
 are neither overwritten nor reinterpreted. The loader rejects properties from
 older contracts instead of ignoring them. Results are not migrated automatically.
 
@@ -73,5 +73,10 @@ not automatically migrated to the new output contract.
 
 Evidence quotes have an experimental maximum of 400 characters, exported as
 maxLength and checked by Pydantic. No automatic cutting or repair is applied.
-The generic prompt requests short contiguous quotes and one defined extraction
-unit per value, preserving compound concepts when they form that unit.
+The generic prompt requests short contiguous quotes and distinct items, preserving
+compound concepts and relationships. Values must be supported by evidence; only
+evidence quotes are subject to literal matching. Value representation may be
+revisited after the pilot. No normalization step is performed.
+
+The human reference is maintained separately and does not need pipeline chunk IDs,
+execution metadata or field statuses. It is not loaded as a pipeline response.

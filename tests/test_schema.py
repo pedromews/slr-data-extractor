@@ -18,7 +18,6 @@ class SchemaTests(unittest.TestCase):
     def setUp(self):
         self.raw = {'schema_id': 'fixture', 'schema_version': '1', 'title': 'Test review',
                     'fields': [{'name': 'finding', 'definition': 'Reported finding',
-                                'unit_of_extraction': 'One claim',
                                 'retrieval_terms': ['finding']}]}
 
     def test_invalid_schemas(self):
@@ -27,7 +26,7 @@ class SchemaTests(unittest.TestCase):
         unknown = copy.deepcopy(self.raw); unknown['relations'] = []; cases.append(unknown)
         blank = copy.deepcopy(self.raw); blank['fields'][0]['definition'] = ' '; cases.append(blank)
         empty = copy.deepcopy(self.raw); empty['fields'][0]['retrieval_terms'] = []; cases.append(empty)
-        for name in ['rules', 'qualifiers']:
+        for name in ['rules', 'qualifiers', 'unit_of_extraction']:
             removed = copy.deepcopy(self.raw)
             removed['fields'][0][name] = [] if name == 'rules' else {}
             cases.append(removed)
@@ -44,14 +43,27 @@ class SchemaTests(unittest.TestCase):
         pages = [{'page': 1, 'text': 'A finding.'}]
         chunks = build_chunks([PageText(1, 'A finding.')], max_chars=100, overlap_chars=0)
         payload = {'field_name': 'finding', 'status': 'extracted', 'values': [{
-            'raw_value': 'finding', 'normalized_value': None,
+            'value': 'finding',
             'evidence': [{'quote': 'A finding.', 'page_start': 1, 'page_end': 1,
                           'chunk_id': chunks[0].chunk_id}]}]}
         validate_field(FieldExtraction.model_validate(payload), field, chunks, pages)
-        for value in [24, True, 2.5]:
-            bad = copy.deepcopy(payload); bad['values'][0]['normalized_value'] = value
+        for value in [24, True, 2.5, None, '', '   ']:
+            bad = copy.deepcopy(payload); bad['values'][0]['value'] = value
             with self.subTest(value=value), self.assertRaises(ValueError):
                 FieldExtraction.model_validate(bad)
+
+    def test_value_contract_rejects_legacy_properties(self):
+        from slr_data_extraction.definitions.result_definition import ExtractedValue
+        payload = {'value': 'A supported finding', 'evidence': [{
+            'quote': 'A finding.', 'page_start': 1, 'page_end': 1,
+            'chunk_id': 'chunk-0001'}]}
+        for name in ['raw_value', 'normalized_value']:
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                ExtractedValue.model_validate({**payload, name: 'finding'})
+        with self.assertRaises(ValueError):
+            ExtractedValue.model_validate({**payload, 'evidence': []})
+        properties = ExtractedValue.model_json_schema()['properties']
+        self.assertEqual(set(properties), {'value', 'evidence'})
 
     def test_only_two_states(self):
         for status in ['ambiguous', 'not_applicable', 'extracted']:
@@ -76,7 +88,11 @@ class SchemaTests(unittest.TestCase):
             manifest = json.loads((run / 'manifest.json').read_text())
             self.assertEqual(manifest['status'], 'prepared')
             self.assertEqual(manifest['schema_id'], 'gender_and_beyond')
-            self.assertEqual(len(list(run.glob('*.request.json'))), 8)
+            schema = json.loads((ROOT / 'config/gender_and_beyond_schema.json').read_text())
+            expected_names = [field['name'] for field in schema['fields']]
+            self.assertEqual(len(list(run.glob('*.request.json'))), len(expected_names))
+            selection = json.loads((run / 'retrieval.json').read_text())
+            self.assertEqual([item['field'] for item in selection], expected_names)
             self.assertTrue((run / 'source/pipeline.py').exists())
             source_root = ROOT / 'src/slr_data_extraction'
             expected = {p.relative_to(source_root) for p in source_root.rglob('*.py')}
@@ -93,6 +109,10 @@ class SchemaTests(unittest.TestCase):
             self.assertFalse((run / 'result.json').exists())
             requests = [json.loads(p.read_text()) for p in run.glob('*.request.json')]
             self.assertTrue(all(r['response_format'] == requests[0]['response_format'] for r in requests))
+            for request in requests:
+                serialized = json.dumps(request)
+                for removed in ['unit_of_extraction', 'raw_value', 'normalized_value']:
+                    self.assertNotIn(removed, serialized)
 
     def test_quote_length_boundary_and_exported_constraint(self):
         from slr_data_extraction.definitions.result_definition import Evidence

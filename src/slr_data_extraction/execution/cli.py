@@ -56,7 +56,7 @@ def main():
     parser = argparse.ArgumentParser(description='Prepare or execute one auditable local-model pilot.')
     parser.add_argument('--input', required=True)
     parser.add_argument('--schema', default='config/gender_and_beyond_schema.json')
-    parser.add_argument('--config', default='config/pilot.json')
+    parser.add_argument('--config', default='config/models/qwen.json')
     parser.add_argument('--run-dir', required=True)
     parser.add_argument('--prepare-only', action='store_true')
     args = parser.parse_args()

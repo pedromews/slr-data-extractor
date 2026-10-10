@@ -40,13 +40,13 @@ committed: `data/` and `runs/` are ignored by Git.
 ```bash
 PYTHONPATH=src .venv/bin/python -m slr_data_extraction.execution.cli \
   --input data/pilot-bias-free.pages.json \
-  --config config/pilot.json \
+  --config config/models/qwen.json \
   --run-dir runs/pilot-bias-free-prepared-new \
   --prepare-only
 ```
 
 Saves page input, schema, configuration, Python package versions, source snapshot
-and hash, every chunk, selected/nonselected IDs and all eight exact requests.
+and hash, every chunk, selected/nonselected IDs and the exact request for every configured field.
 Use a new run directory each time. `prepared` does not mean inference or token
 preflight passed. No server is contacted in preparation mode.
 
@@ -55,14 +55,14 @@ The extraction CLI now uses `--config` and `--run-dir` instead of the old
 
 ## PCAD pilot: RTX 4090 24 GB
 
-`config/pilot.json` selects Qwen2.5-7B-Instruct and an exact model revision.
+`config/models/qwen.json` selects Qwen2.5-7B-Instruct and an exact model revision.
 Other models remain configurable; comparison is not run automatically.
 
 In a separate server environment with Python 3.11 and `vllm==0.11.0`:
 
 ```bash
 python scripts/serve_pilot.py \
-  --config config/pilot.json --log-dir runs/server-pilot-001
+  --config config/models/qwen.json --log-dir runs/server-pilot-001
 ```
 
 This launches BF16, context 8192, one sequence, 90% GPU memory utilization,
@@ -76,7 +76,7 @@ In another terminal, use the client environment on the same host:
 ```bash
 PYTHONPATH=src .venv/bin/python -m slr_data_extraction.execution.cli \
   --input data/pilot-bias-free.pages.json \
-  --config config/pilot.json \
+  --config config/models/qwen.json \
   --run-dir runs/pilot-bias-free-001
 ```
 
@@ -109,7 +109,7 @@ or compare model scores until this pilot has been manually validated.
 The researcher-defined schema is `config/gender_and_beyond_schema.json`.
 `definitions/schema_definition.py` provides a small Pydantic contract, without dynamic models or a
 separately maintained meta-schema file. All fields return lists of textual values,
-optional normalized text and source evidence. The generic prompt preserves
+source evidence. The generic prompt preserves
 proposal versus actual use and other semantic distinctions in the text.
 
 ```bash
@@ -125,13 +125,13 @@ Relations, value IDs, numeric/categorical types and advanced normalization polic
 are deferred. No evaluation metrics or corpus-wide execution are implemented.
 See [the MVP contract](docs/schema-contract.md).
 
-`config/pilot.json` is the source of execution parameters, including chunking,
+`config/models/qwen.json` is the source of execution parameters, including chunking,
 retrieval and generation. `top_k` means retrieved chunks; `sampling_top_k` is the
-vLLM sampling parameter. `config/models.json` only lists candidate models; it does
+vLLM sampling parameter. `config/models/models.json` only lists candidate models; it does
 not override the execution configuration. Low-level chunking/retrieval functions
 require explicit parameters rather than conflicting defaults.
 
-The simplified schema/output version is `3.1-mvp`, prompt version `4.1-mvp`.
+The simplified schema/output version is `4.0-mvp`, prompt version `5.0-mvp`.
 Previous run folders are preserved, but their formats/prompts are not equivalent.
 Prepare a new run before executing this version:
 
@@ -139,7 +139,7 @@ Prepare a new run before executing this version:
 PYTHONPATH=src .venv/bin/python -m slr_data_extraction.execution.cli \
   --input data/pilot-bias-free.pages.json \
   --schema config/gender_and_beyond_schema.json \
-  --config config/pilot.json \
+  --config config/models/qwen.json \
   --run-dir runs/pilot-mvp-new --prepare-only
 ```
 

@@ -40,6 +40,34 @@ class CoreTests(unittest.TestCase):
         chunks = build_chunks([PageText(1, "abcdefghij")], max_chars=10, overlap_chars=3)
         self.assertEqual([c.text for c in chunks], ["abcdefghij"])
 
+    def test_section_boundaries_preserve_text_and_limit_overlap(self):
+        pages = [PageText(1, 'abcdefghijKLMNOP', (
+            {'start': 0, 'end': 10, 'section': 'I'},
+            {'start': 10, 'end': 16, 'section': 'II'})),
+            PageText(2, 'QRSTUV', ({'start': 0, 'end': 6, 'section': 'II'},))]
+        chunks = build_chunks(pages, max_chars=8, overlap_chars=2)
+        reconstructed = {}
+        previous = None
+        for chunk in chunks:
+            if previous and previous.section == chunk.section:
+                self.assertEqual(previous.text[-2:], chunk.text[:2])
+                reconstructed[chunk.section] += chunk.text[2:]
+            else:
+                reconstructed[chunk.section] = chunk.text
+            for start, end, page in chunk.page_spans:
+                self.assertTrue(0 <= start < end <= len(chunk.text))
+                self.assertIn(page, [1, 2])
+            previous = chunk
+        self.assertEqual(reconstructed, {'I': 'abcdefghij', 'II': 'KLMNOP QRSTUV'})
+        self.assertEqual(len({c.chunk_id for c in chunks}), len(chunks))
+        self.assertTrue(any(c.page_start == 1 and c.page_end == 2 for c in chunks))
+
+    def test_invalid_section_coverage_is_not_silently_dropped(self):
+        for spans in [({'start': 1, 'end': 3, 'section': None},),
+                      ({'start': 0, 'end': 2, 'section': None},)]:
+            with self.subTest(spans=spans), self.assertRaises(ValueError):
+                build_chunks([PageText(1, 'abc', spans)], max_chars=10, overlap_chars=0)
+
     def test_empty_input(self):
         self.assertEqual(build_chunks([], max_chars=100, overlap_chars=10), [])
 

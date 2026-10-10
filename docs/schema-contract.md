@@ -55,7 +55,7 @@ input, prompts, chunks and retrieval selection, declared model revision, raw
 responses, errors, timings, environment and a source snapshot. This also captures
 uncommitted code changes. Context checks remain mandatory before generation.
 
-Current versions: schema/output 4.0-mvp, prompt 5.1-mvp. Earlier run directories
+Current versions: schema/output 4.0-mvp, prompt 5.2-mvp. Earlier run directories
 are neither overwritten nor reinterpreted. The loader rejects properties from
 older contracts instead of ignoring them. Results are not migrated automatically.
 
@@ -86,3 +86,21 @@ pages. A label is supplied only when the fragment has a unique match on the
 normalized page and lies entirely inside one parser section span. Missing,
 ambiguous or cross-section fragments receive null. Fragment text is unchanged.
 These labels remain parser heuristics, not verified PDF headings.
+
+## Section-aware chunking
+
+Parser implementation 2 recognizes numbered headings and alphabetic subsections,
+retaining the parent heading in subsection labels. Wrapped uppercase headings are
+joined for labels only; page text and offsets are unchanged. Heading detection
+remains heuristic; unusual layouts and wrapped mixed-case subsection titles may
+need review. Table captions are not treated as section headings.
+
+Chunking version `2-section-boundaries` splits at changes in annotated section
+labels and applies size limits and overlap within each section. A section can
+continue across pages. Missing annotations retain a null label; incomplete or
+overlapping supplied spans fail explicitly. Existing page JSON is not reparsed
+or upgraded automatically: use PDF input to obtain the new annotations.
+
+This changes chunk IDs, selected context and potentially extraction results.
+Create new runs; do not compare them as a model-only change against older runs.
+The CLI manifest records the chunking version alongside the source hash.

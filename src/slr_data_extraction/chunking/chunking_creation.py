@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 
 @dataclass(frozen=True)
 class PageText:
     page: int
     text: str
+    sections: tuple[dict, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -17,13 +18,14 @@ class Chunk:
     page_end: int
     text: str
     page_spans: tuple[tuple[int, int, int], ...] = ()
+    section: str | None = None
 
 
 def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def build_chunks(
+def _build_chunks(
     pages: list[PageText],
     *,
     max_chars: int,
@@ -81,4 +83,32 @@ def build_chunks(
         if end == len(document):
             break
         start = end - overlap_chars
+    return chunks
+
+
+CHUNKING_VERSION = '2-section-boundaries'
+
+
+def build_chunks(pages: list[PageText], *, max_chars: int, overlap_chars: int) -> list[Chunk]:
+    """Split at annotated section transitions; overlap never crosses a boundary."""
+    if max_chars <= 0 or not 0 <= overlap_chars < max_chars:
+        raise ValueError('Require max_chars > 0 and 0 <= overlap_chars < max_chars')
+    groups = []
+    for page in pages:
+        spans = page.sections or ({'start': 0, 'end': len(page.text), 'section': None},)
+        cursor = 0
+        for span in spans:
+            if span['start'] != cursor or not cursor <= span['end'] <= len(page.text):
+                raise ValueError('Section spans must cover page text in order without gaps or overlaps')
+            cursor = span['end']
+            section = span['section']
+            if not groups or groups[-1][0] != section:
+                groups.append((section, []))
+            groups[-1][1].append(PageText(page.page, page.text[span['start']:span['end']]))
+        if cursor != len(page.text):
+            raise ValueError('Section spans do not cover the complete page')
+    chunks = []
+    for section, fragments in groups:
+        for chunk in _build_chunks(fragments, max_chars=max_chars, overlap_chars=overlap_chars):
+            chunks.append(replace(chunk, chunk_id=f'chunk-{len(chunks) + 1:04d}', section=section))
     return chunks

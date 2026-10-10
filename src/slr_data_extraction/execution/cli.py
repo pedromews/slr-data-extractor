@@ -19,6 +19,7 @@ from .audit import Audit, write_json
 from ..validation.preflight import preflight
 from ..pipeline import ExtractionPipeline, PROMPT_VERSION
 from ..parsing.pdf_parser import parse_pdf
+from ..chunking.chunking_creation import CHUNKING_VERSION
 from ..definitions.schema_definition import fingerprint
 from ..definitions.result_definition import OUTPUT_VERSION
 
@@ -77,7 +78,7 @@ def main():
     started = time.perf_counter()
     manifest = {'started_at': datetime.now(timezone.utc).isoformat(), 'status': 'running',
                 'python': platform.python_version(), 'platform': platform.platform(),
-                'source_sha256': code_hash(),
+                'source_sha256': code_hash(), 'chunking_version': CHUNKING_VERSION,
                 'packages': {d.metadata['Name']: d.version for d in distributions()}}
     write_json(directory / 'manifest.json', manifest)
     try:

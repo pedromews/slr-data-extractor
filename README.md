@@ -131,7 +131,7 @@ vLLM sampling parameter. `config/models/models.json` only lists candidate models
 not override the execution configuration. Low-level chunking/retrieval functions
 require explicit parameters rather than conflicting defaults.
 
-The simplified schema/output version is `4.0-mvp`, prompt version `5.1-mvp`.
+The simplified schema/output version is `4.0-mvp`, prompt version `5.2-mvp`.
 Previous run folders are preserved, but their formats/prompts are not equivalent.
 Prepare a new run before executing this version:
 

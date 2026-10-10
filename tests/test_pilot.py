@@ -35,7 +35,7 @@ class PilotTests(unittest.TestCase):
             'value': 'gender bias',
             'evidence': [{
                 'quote': 'gender bias', 'page_start': 2, 'page_end': 2,
-                'chunk_id': self.chunks[0].chunk_id, 'section': 'Results'}]}]}
+                'chunk_id': next(c.chunk_id for c in self.chunks if 'gender bias' in c.text), 'section': 'Results'}]}]}
 
     def test_fragment_section_requires_exact_span_coverage(self):
         from slr_data_extraction.pipeline import fragment_section

@@ -37,6 +37,24 @@ class PilotTests(unittest.TestCase):
                 'quote': 'gender bias', 'page_start': 2, 'page_end': 2,
                 'chunk_id': self.chunks[0].chunk_id, 'section': 'Results'}]}]}
 
+    def test_fragment_section_requires_exact_span_coverage(self):
+        from slr_data_extraction.pipeline import fragment_section
+        page = {'text': 'Intro.\nResults   here.', 'sections': [
+            {'start': 0, 'end': 7, 'section': 'Introduction'},
+            {'start': 7, 'end': 22, 'section': 'Results'}]}
+        self.assertEqual(fragment_section('Results here.', page), 'Results')
+        self.assertIsNone(fragment_section('Intro. Results here.', page))
+        self.assertIsNone(fragment_section('Missing', page))
+        self.assertIsNone(fragment_section('Results here.', {'text': page['text']}))
+        self.assertIsNone(fragment_section('same', {'text': 'same same', 'sections': [
+            {'start': 0, 'end': 9, 'section': 'Results'}]}))
+
+    def test_request_labels_each_page_fragment_without_leaking_sections(self):
+        prompt = self.prepared[0]['request']['messages'][1]['content']
+        self.assertIn('[page 1; parser section: null] Background only.', prompt)
+        self.assertIn('[page 2; parser section: "Results"] gender bias observed', prompt)
+        self.assertNotIn('heuristic section labels', prompt)
+
     def test_valid_evidence_and_section(self):
         result = FieldExtraction.model_validate(self.value)
         self.assertEqual(validate_field(result, self.field, self.chunks, self.article['pages']), result)

@@ -55,7 +55,7 @@ input, prompts, chunks and retrieval selection, declared model revision, raw
 responses, errors, timings, environment and a source snapshot. This also captures
 uncommitted code changes. Context checks remain mandatory before generation.
 
-Current versions: schema/output 4.0-mvp, prompt 5.0-mvp. Earlier run directories
+Current versions: schema/output 4.0-mvp, prompt 5.1-mvp. Earlier run directories
 are neither overwritten nor reinterpreted. The loader rejects properties from
 older contracts instead of ignoring them. Results are not migrated automatically.
 
@@ -80,3 +80,9 @@ revisited after the pilot. No normalization step is performed.
 
 The human reference is maintained separately and does not need pipeline chunk IDs,
 execution metadata or field statuses. It is not loaded as a pipeline response.
+
+Section metadata is attached to each page fragment, not pooled across a chunk's
+pages. A label is supplied only when the fragment has a unique match on the
+normalized page and lies entirely inside one parser section span. Missing,
+ambiguous or cross-section fragments receive null. Fragment text is unchanged.
+These labels remain parser heuristics, not verified PDF headings.

@@ -14,7 +14,7 @@ from pathlib import Path
 import pypdf
 from pypdf import PdfReader
 
-PARSER_VERSION = "1"
+PARSER_VERSION = "2"
 # Deliberately conservative: an entire line must be a recognizable heading.
 HEADING = re.compile(
     r"^(?:(?:\d+(?:\.\d+)*|[IVX]+)[.)]?\s+)?"
@@ -29,23 +29,41 @@ def section_spans(text: str, current: str | None) -> tuple[list[dict], str | Non
     spans = []
     start = 0
     offset = 0
-    for line in text.splitlines(keepends=True):
+    lines = text.splitlines(keepends=True)
+    index = 0
+    while index < len(lines):
+        line = lines[index]
         candidate = line.strip()
-        # PDF small caps may be extracted as "I. I NTRODUCTION". Only repair
-        # a known heading for detection; preserve the original text and label.
-        compact = re.sub(r"^(?:\d+(?:\.\d+)*|[IVX]+)[.)]?\s+", "", candidate)
-        known_compact = {"INTRODUCTION", "BACKGROUND", "RELATEDWORK", "METHODS",
-                         "METHODOLOGY", "RESULTS", "DISCUSSION", "CONCLUSION",
-                         "CONCLUSIONS", "REFERENCES", "THREATSTOVALIDITY"}
-        small_caps = candidate.isupper() and re.sub(r"\s+", "", compact) in known_compact
-        recognized = bool(HEADING.fullmatch(candidate)) or small_caps
-        unknown_heading = candidate.isupper() and bool(re.match(r"^[IVX]+\.\s+", candidate))
-        if recognized or unknown_heading:
+        numbered = bool(re.match(r'^(?:[IVX]+\.|\d{1,2}(?:\.\d{1,2})*[.)]?)\s+[A-Z]', candidate))
+        # Avoid treating numbered citations or prose sentences as headings.
+        numbered = numbered and len(candidate) <= 150 and not re.search(r'[,;“”"]', candidate)
+        subsection = bool(re.match(r'^[A-Z]\.\s+[A-Z]', candidate))
+        parent = current.split(' > ')[0] if current else None
+        subsection = (subsection and parent is not None and
+                      'REFERENCES' not in parent.upper() and
+                      len(candidate) <= 150 and not re.search(r'[,;“”"]', candidate))
+        recognized = bool(HEADING.fullmatch(candidate)) or numbered or subsection
+        if recognized:
+            # Join wrapped uppercase main headings; text offsets remain unchanged.
+            consumed = len(line)
+            if numbered and candidate.isupper():
+                while index + 1 < len(lines):
+                    continuation = lines[index + 1].strip()
+                    if (not continuation or not continuation.isupper() or
+                        re.match(r'^(?:[IVX]+\.|[A-Z]\.|\d|TABLE|FIG)', continuation) or
+                        len(candidate) + len(continuation) > 200):
+                        break
+                    index += 1
+                    consumed += len(lines[index])
+                    candidate += ' ' + continuation
             if offset > start:
-                spans.append({"start": start, "end": offset, "section": current})
+                spans.append({'start': start, 'end': offset, 'section': current})
             start = offset
-            current = candidate if recognized else None
-        offset += len(line)
+            current = parent + ' > ' + candidate if subsection and not numbered else candidate
+            offset += consumed
+        else:
+            offset += len(line)
+        index += 1
     if text:
         spans.append({"start": start, "end": len(text), "section": current})
     return spans, current
@@ -95,7 +113,7 @@ def parse_pdf(path: str | Path, *, study_id: str, title: str | None = None) -> d
             "source": {"filename": path.name, "sha256": hashlib.sha256(data).hexdigest()},
             "parser": {"name": "pypdf", "version": pypdf.__version__,
                        "implementation_version": PARSER_VERSION, "extraction_mode": "plain",
-                       "section_method": "conservative-heading-lines-v1",
+                       "section_method": "numbered-heading-lines-v2",
                        "page_numbering": "physical PDF pages, one-based",
                        "elapsed_seconds": time.perf_counter() - started,
                        "warnings": captured.messages},

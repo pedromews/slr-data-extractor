@@ -109,12 +109,27 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(following[0]['section'], '2 Results')
         self.assertIsNone(section_spans('The results show an effect.', None)[0][0]['section'])
 
-    def test_small_caps_and_unrecognized_section_reset(self):
+    def test_numbered_headings_and_subsections(self):
         spans, current = section_spans('I. I NTRODUCTION\nText.', None)
         self.assertEqual(current, 'I. I NTRODUCTION')
         spans, current = section_spans('II. D ESIGN PRINCIPLES\nText.', current)
-        self.assertIsNone(current)
-        self.assertIsNone(spans[0]['section'])
+        self.assertEqual(current, 'II. D ESIGN PRINCIPLES')
+        spans, current = section_spans('A. Principle I\nBody.', current)
+        self.assertEqual(current, 'II. D ESIGN PRINCIPLES > A. Principle I')
+        spans, current = section_spans('B. Principle II\nBody.', current)
+        self.assertEqual(current, 'II. D ESIGN PRINCIPLES > B. Principle II')
+
+    def test_wrapped_heading_and_reference_initials(self):
+        text = 'II. DESIGN PRINCIPLES FOR\nGENERATIVE AI\nA. Principle I\nBody.'
+        spans, current = section_spans(text, None)
+        self.assertEqual(spans[0]['section'], 'II. DESIGN PRINCIPLES FOR GENERATIVE AI')
+        self.assertEqual(current, 'II. DESIGN PRINCIPLES FOR GENERATIVE AI > A. Principle I')
+        self.assertEqual(''.join(text[x['start']:x['end']] for x in spans), text)
+        spans, current = section_spans('REFERENCES\nB. Author, Some publication.', current)
+        self.assertEqual(current, 'REFERENCES')
+        self.assertEqual(len(spans), 1)
+        _, current = section_spans('2026 IEEE Conference', 'Results')
+        self.assertEqual(current, 'Results')
 
     def test_page_exception_is_recorded_not_dropped(self):
         make_pdf(self.path, ['Text'])

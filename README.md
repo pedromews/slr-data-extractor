@@ -196,3 +196,23 @@ and token budget; `validation/evidence_validation.py` checks field names and
 source evidence. `execution/cli.py` handles run orchestration and artifact saving.
 Source snapshots and hashes cover the entire package, not just `execution/`.
 The vLLM launcher remains in `scripts/serve_pilot.py` outside the client package.
+
+## Prepare a pilot directly from PDF
+
+The vLLM pipeline CLI accepts PDF or parsed page JSON input. For PDF input,
+provide a study ID; an optional `--title` overrides the PDF metadata title.
+
+```bash
+PYTHONPATH=src .venv/bin/python -m slr_data_extraction.execution.cli \
+  --input data/papers/P1-paper-title.pdf \
+  --study-id P1 \
+  --config config/models/qwen.json \
+  --run-dir runs/pilot-P1-pdf-prepared-001 \
+  --prepare-only
+```
+
+The run saves `input.pdf` and parsed `article.json`, including the source hash,
+parser version, settings, warnings and page statuses. Pages requiring review
+block preparation and inference, but the parsed article remains available for
+inspection. JSON input retains its existing metadata; `--study-id` and `--title`
+are PDF-only options. No OCR is performed. The Ollama CLI still takes page JSON.

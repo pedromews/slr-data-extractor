@@ -18,6 +18,7 @@ from openai import OpenAI
 from .audit import Audit, write_json
 from ..validation.preflight import preflight
 from ..pipeline import ExtractionPipeline, PROMPT_VERSION
+from ..parsing.pdf_parser import parse_pdf
 from ..definitions.schema_definition import fingerprint
 from ..definitions.result_definition import OUTPUT_VERSION
 
@@ -54,12 +55,22 @@ def save_preparation(directory, pipeline, article):
 
 def main():
     parser = argparse.ArgumentParser(description='Prepare or execute one auditable local-model pilot.')
-    parser.add_argument('--input', required=True)
+    parser.add_argument('--input', required=True, help='PDF or parsed page JSON')
+    parser.add_argument('--study-id', help='Required for PDF input')
+    parser.add_argument('--title', help='Optional title override for PDF input')
     parser.add_argument('--schema', default='config/gender_and_beyond_schema.json')
     parser.add_argument('--config', default='config/models/qwen.json')
     parser.add_argument('--run-dir', required=True)
     parser.add_argument('--prepare-only', action='store_true')
     args = parser.parse_args()
+    input_path = Path(args.input)
+    is_pdf = input_path.suffix.lower() == '.pdf'
+    if input_path.suffix.lower() not in {'.pdf', '.json'}:
+        parser.error('--input must be a PDF or JSON file')
+    if is_pdf and not (args.study_id and args.study_id.strip()):
+        parser.error('--study-id is required for PDF input')
+    if not is_pdf and (args.study_id is not None or args.title is not None):
+        parser.error('--study-id and --title apply only to PDF input; edit JSON metadata instead')
     directory = Path(args.run_dir)
     # Never overwrite an earlier run.
     directory.mkdir(parents=True, exist_ok=False)
@@ -71,11 +82,19 @@ def main():
     write_json(directory / 'manifest.json', manifest)
     try:
         article_bytes = Path(args.input).read_bytes()
-        article = json.loads(article_bytes)
+        manifest['input_sha256'] = hashlib.sha256(article_bytes).hexdigest()
+        manifest['input_format'] = 'pdf' if is_pdf else 'json'
+        if is_pdf:
+            # Parse the saved bytes so the audited source is the actual input.
+            snapshot = directory / 'input.pdf'
+            snapshot.write_bytes(article_bytes)
+            article = parse_pdf(snapshot, study_id=args.study_id, title=args.title)
+            article['source']['filename'] = input_path.name
+        else:
+            article = json.loads(article_bytes)
+        write_json(directory / 'article.json', article)
         config = json.loads(Path(args.config).read_text())
         write_json(directory / 'config.json', config)
-        write_json(directory / 'article.json', article)
-        manifest['input_sha256'] = hashlib.sha256(article_bytes).hexdigest()
         host = urlparse(config['base_url']).hostname
         if host not in {'127.0.0.1', 'localhost', '::1'}:
             raise ValueError('Pilot endpoint must be local (use an SSH tunnel if necessary)')

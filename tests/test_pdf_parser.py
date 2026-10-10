@@ -43,6 +43,47 @@ class ParserTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.path = Path(self.tmp.name) / 'paper.pdf'
 
+    def test_pipeline_cli_pdf_preparation_and_review_block(self):
+        root = Path(__file__).resolve().parents[1]
+        for label, texts in [('valid', ['1 Results\nGender bias observed.']),
+                             ('empty', ['1 Results\nGender bias observed.', None])]:
+            with self.subTest(label=label):
+                make_pdf(self.path, texts)
+                run = Path(self.tmp.name) / label
+                result = subprocess.run([
+                    sys.executable, '-m', 'slr_data_extraction.execution.cli',
+                    '--input', str(self.path), '--study-id', 'P1',
+                    '--run-dir', str(run), '--prepare-only'],
+                    cwd=root, capture_output=True, text=True)
+                article = json.loads((run / 'article.json').read_text())
+                manifest = json.loads((run / 'manifest.json').read_text())
+                self.assertEqual(article['study_id'], 'P1')
+                self.assertEqual(article['title'], 'Fixture paper')
+                self.assertEqual(len(article['pages']), len(texts))
+                self.assertEqual((run / 'input.pdf').read_bytes(), self.path.read_bytes())
+                self.assertEqual(manifest['input_sha256'], article['source']['sha256'])
+                self.assertEqual(manifest['input_format'], 'pdf')
+                if label == 'valid':
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(manifest['status'], 'prepared')
+                    self.assertTrue(list(run.glob('*.request.json')))
+                else:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(manifest['status'], 'failed')
+                    self.assertTrue(article['requires_review'])
+                    self.assertFalse(list(run.glob('*.request.json')))
+
+    def test_pipeline_pdf_requires_study_id_before_creating_run(self):
+        root = Path(__file__).resolve().parents[1]
+        run = Path(self.tmp.name) / 'missing-id'
+        result = subprocess.run([
+            sys.executable, '-m', 'slr_data_extraction.execution.cli',
+            '--input', str(self.path), '--run-dir', str(run), '--prepare-only'],
+            cwd=root, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('--study-id', result.stderr)
+        self.assertFalse(run.exists())
+
     def test_real_pdf_preserves_pages_text_hash_and_sections(self):
         make_pdf(self.path, ['1 Introduction\nUnique first page.', None,
                              '2 Results\nUnique final page.'])

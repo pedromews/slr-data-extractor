@@ -7,10 +7,10 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-# Minimal valid JSON (rules and qualifiers are optional):
+# Minimal valid JSON:
 # {
 #   "schema_id": "gender_and_beyond",
-#   "schema_version": "2.0-mvp",
+#   "schema_version": "3.0-mvp",
 #   "title": "Gender and Beyond",
 #   "fields": [
 #     {
@@ -20,17 +20,6 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 #       "retrieval_terms": ["bias", "fairness"]
 #     }
 #   ]
-# }
-#
-# To include qualifiers, add this property to the field, for example:
-# "qualifiers": {
-#   "evidence_status": {
-#     "definition": "Nature of the reported evidence",
-#     "options": {
-#       "observed": "Empirical result",
-#       "discussed": "Discussion without empirical demonstration"
-#     }
-#   }
 # }
 #
 # Invalid examples: each change below, applied independently to the valid
@@ -43,7 +32,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 # - Add "value_type": "text" to the field: this property is not part of the MVP.
 # - Set "fields": []: the review must define at least one field.
 # - Duplicate the field in "fields": field names must be unique.
-# - Set "options": {} in the qualifier above: at least one option is required.
+# - Add "rules" or "qualifiers": these properties are not part of this contract.
 #
 # These rules check structure and basic configuration consistency;
 # researchers remain responsible for the scientific adequacy of definitions.
@@ -57,18 +46,11 @@ class Contract(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
 
 
-class QualifierDefinition(Contract):
-    definition: Text
-    options: dict[Identifier, Text] = Field(min_length=1)
-
-
 class FieldDefinition(Contract):
     name: Identifier
     definition: Text
     unit_of_extraction: Text
-    rules: list[Text] = Field(default_factory=list)
     retrieval_terms: list[Text] = Field(min_length=1)
-    qualifiers: dict[Identifier, QualifierDefinition] = Field(default_factory=dict)
 
 
 class ReviewSchema(Contract):

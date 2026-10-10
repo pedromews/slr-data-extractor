@@ -18,9 +18,8 @@ class SchemaTests(unittest.TestCase):
     def setUp(self):
         self.raw = {'schema_id': 'fixture', 'schema_version': '1', 'title': 'Test review',
                     'fields': [{'name': 'finding', 'definition': 'Reported finding',
-                                'unit_of_extraction': 'One claim', 'retrieval_terms': ['finding'],
-                                'qualifiers': {'role': {'definition': 'Role of finding',
-                                    'options': {'observed': 'Empirical', 'proposed': 'Proposal'}}}}]}
+                                'unit_of_extraction': 'One claim',
+                                'retrieval_terms': ['finding']}]}
 
     def test_invalid_schemas(self):
         cases = []
@@ -28,11 +27,15 @@ class SchemaTests(unittest.TestCase):
         unknown = copy.deepcopy(self.raw); unknown['relations'] = []; cases.append(unknown)
         blank = copy.deepcopy(self.raw); blank['fields'][0]['definition'] = ' '; cases.append(blank)
         empty = copy.deepcopy(self.raw); empty['fields'][0]['retrieval_terms'] = []; cases.append(empty)
+        for name in ['rules', 'qualifiers']:
+            removed = copy.deepcopy(self.raw)
+            removed['fields'][0][name] = [] if name == 'rules' else {}
+            cases.append(removed)
         for case in cases:
             with self.subTest(case=case), self.assertRaises(ValueError):
                 ReviewSchema.model_validate(case)
 
-    def test_qualifier_dimensions_and_options(self):
+    def test_textual_values_with_evidence(self):
         field = ReviewSchema.model_validate(self.raw).fields[0]
         # No values is valid and does not need evidence.
         absent = FieldExtraction(field_name='finding', status='not_found_in_context', values=[])
@@ -41,14 +44,10 @@ class SchemaTests(unittest.TestCase):
         pages = [{'page': 1, 'text': 'A finding.'}]
         chunks = build_chunks([PageText(1, 'A finding.')], max_chars=100, overlap_chars=0)
         payload = {'field_name': 'finding', 'status': 'extracted', 'values': [{
-            'raw_value': 'finding', 'normalized_value': None, 'qualifiers': {'role': 'observed'},
+            'raw_value': 'finding', 'normalized_value': None,
             'evidence': [{'quote': 'A finding.', 'page_start': 1, 'page_end': 1,
                           'chunk_id': chunks[0].chunk_id}]}]}
         validate_field(FieldExtraction.model_validate(payload), field, chunks, pages)
-        for qualifiers in [{}, {'role': 'wrong'}, {'role': 'observed', 'extra': 'x'}]:
-            bad = copy.deepcopy(payload); bad['values'][0]['qualifiers'] = qualifiers
-            with self.subTest(qualifiers=qualifiers), self.assertRaises(ValueError):
-                validate_field(FieldExtraction.model_validate(bad), field, chunks, pages)
         for value in [24, True, 2.5]:
             bad = copy.deepcopy(payload); bad['values'][0]['normalized_value'] = value
             with self.subTest(value=value), self.assertRaises(ValueError):
@@ -94,3 +93,12 @@ class SchemaTests(unittest.TestCase):
             self.assertFalse((run / 'result.json').exists())
             requests = [json.loads(p.read_text()) for p in run.glob('*.request.json')]
             self.assertTrue(all(r['response_format'] == requests[0]['response_format'] for r in requests))
+
+    def test_quote_length_boundary_and_exported_constraint(self):
+        from slr_data_extraction.definitions.result_definition import Evidence
+        common = dict(page_start=1, page_end=1, chunk_id='chunk-0001')
+        self.assertEqual(len(Evidence(quote='x' * 400, **common).quote), 400)
+        with self.assertRaises(ValueError):
+            Evidence(quote='x' * 401, **common)
+        schema = FieldExtraction.model_json_schema()
+        self.assertEqual(schema['$defs']['Evidence']['properties']['quote']['maxLength'], 400)

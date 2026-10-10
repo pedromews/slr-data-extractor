@@ -1,0 +1,17 @@
+{
+  "model_id": "qwen2.5:7b-instruct-q4_K_M",
+  "base_url": "http://127.0.0.1:11434",
+  "max_model_len": 32768,
+  "temperature": 0.0,
+  "seed": 42,
+  "max_tokens": 2048,
+  "max_chars": 2500,
+  "overlap_chars": 250,
+  "top_k": 6,
+  "top_p": 1.0,
+  "frequency_penalty": 0.0,
+  "presence_penalty": 0.0,
+  "sampling_top_k": -1,
+  "min_p": 0.0,
+  "repetition_penalty": 1.0
+}

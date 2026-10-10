@@ -34,7 +34,12 @@
         "design",
         "recruitment",
         "hiring",
-        "education"
+        "education",
+        "generation",
+        "generative",
+        "pipeline",
+        "pipelines",
+        "fairness"
       ]
     },
     {
@@ -64,7 +69,12 @@
         "dataset",
         "historical",
         "prompt",
-        "imbalance"
+        "imbalance",
+        "biases",
+        "reintroduce",
+        "amplify",
+        "configuration",
+        "orchestration"
       ]
     },
     {
@@ -80,7 +90,14 @@
         "metric",
         "dataset",
         "prompt",
-        "classification"
+        "classification",
+        "metrics",
+        "measurements",
+        "indicators",
+        "KPIs",
+        "measurement",
+        "fairness",
+        "parity"
       ]
     },
     {
@@ -125,7 +142,11 @@
         "prompt engineering",
         "fine-tuning",
         "RLHF",
-        "intervention"
+        "intervention",
+        "datasets",
+        "taxonomies",
+        "diagnostic",
+        "constraints"
       ]
     }
   ]

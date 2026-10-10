@@ -68,7 +68,7 @@ class CoreTests(unittest.TestCase):
 
     def test_absence_and_values_are_mutually_exclusive(self):
         value = ExtractedValue(
-            raw_value="gender bias", normalized_value=None, qualifiers={},
+            raw_value="gender bias", normalized_value=None,
             evidence=[Evidence(quote="gender bias", page_start=1, page_end=1, chunk_id="c1")],
         )
         with self.assertRaises(ValueError):

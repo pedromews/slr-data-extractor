@@ -2,7 +2,7 @@
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-OUTPUT_VERSION = '2.0-mvp'
+OUTPUT_VERSION = '3.1-mvp'
 
 
 class Output(BaseModel):
@@ -10,7 +10,7 @@ class Output(BaseModel):
 
 
 class Evidence(Output):
-    quote: str = Field(min_length=1, pattern=r'\S')
+    quote: str = Field(min_length=1, max_length=400, pattern=r'\S')
     page_start: int = Field(ge=1)
     page_end: int = Field(ge=1)
     section: str | None = None
@@ -26,7 +26,6 @@ class Evidence(Output):
 class ExtractedValue(Output):
     raw_value: str = Field(min_length=1, pattern=r'\S')
     normalized_value: str | None
-    qualifiers: dict[str, str]
     evidence: list[Evidence] = Field(min_length=1)
 
 
@@ -44,7 +43,7 @@ class FieldExtraction(Output):
 
 
 class ArticleExtraction(Output):
-    output_version: Literal['2.0-mvp'] = OUTPUT_VERSION
+    output_version: Literal['3.1-mvp'] = OUTPUT_VERSION
     schema_id: str
     schema_version: str
     schema_sha256: str

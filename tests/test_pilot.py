@@ -33,7 +33,7 @@ class PilotTests(unittest.TestCase):
         self.field = self.prepared[0]['field']
         self.value = {'field_name': 'bias_types', 'status': 'extracted', 'values': [{
             'raw_value': 'gender bias', 'normalized_value': 'gender_bias',
-            'qualifiers': {'evidence_status': 'empirically_observed'}, 'evidence': [{
+            'evidence': [{
                 'quote': 'gender bias', 'page_start': 2, 'page_end': 2,
                 'chunk_id': self.chunks[0].chunk_id, 'section': 'Results'}]}]}
 
@@ -52,14 +52,12 @@ class PilotTests(unittest.TestCase):
                     validate_field(FieldExtraction.model_validate(value), self.field,
                                    self.chunks, self.article['pages'])
 
-    def test_wrong_field_or_qualifier_is_rejected(self):
-        for field, qualifier in [('llm_systems', 'empirically_observed'), ('bias_types', 'proposed')]:
-            value = copy.deepcopy(self.value)
-            value['field_name'] = field
-            value['values'][0]['qualifiers'] = {'evidence_status': qualifier}
-            with self.assertRaises(ValueError):
-                validate_field(FieldExtraction.model_validate(value), self.field,
-                               self.chunks, self.article['pages'])
+    def test_wrong_field_is_rejected(self):
+        value = copy.deepcopy(self.value)
+        value['field_name'] = 'llm_systems'
+        with self.assertRaises(ValueError):
+            validate_field(FieldExtraction.model_validate(value), self.field,
+                           self.chunks, self.article['pages'])
 
     def test_empty_or_failed_pages_block_generation(self):
         for status in ['empty', 'error']:
@@ -129,11 +127,8 @@ class PilotTests(unittest.TestCase):
                 preflight(config, self.prepared, self.directory)
         self.assertEqual(self.prepared[0]['request'], original)
 
-    def test_schema_qualifiers_are_accepted_by_output_model(self):
-        for field in self.pipeline.review.fields:
-            for dimension, definition in field.qualifiers.items():
-                for option in definition.options:
-                    value = copy.deepcopy(self.value)
-                    value['field_name'] = field.name
-                    value['values'][0]['qualifiers'] = {dimension: option}
-                    validate_field(FieldExtraction.model_validate(value), field, self.chunks, self.article['pages'])
+    def test_removed_qualifiers_are_rejected(self):
+        value = copy.deepcopy(self.value)
+        value['values'][0]['qualifiers'] = {'evidence_status': 'observed'}
+        with self.assertRaises(ValueError):
+            FieldExtraction.model_validate(value)

@@ -40,11 +40,6 @@ def validate_field(result, field, selected, pages):
     if result.field_name != field.name:
         raise ValueError('Returned field_name differs from requested field')
     for value in result.values:
-        if set(value.qualifiers) != set(field.qualifiers):
-            raise ValueError('Qualifier dimensions differ from schema')
-        for name, option in value.qualifiers.items():
-            if option not in field.qualifiers[name].options:
-                raise ValueError(f'Invalid qualifier option: {name}={option}')
         for evidence in value.evidence:
             validate_evidence(evidence, selected, pages)
     return result

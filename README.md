@@ -93,7 +93,7 @@ log; `/models` alone cannot attest it.
 
 ## Review before expansion
 
-Inspect PDF reading order, page/section evidence, qualifiers and retrieval
+Inspect PDF reading order, page/section evidence, claim meaning and retrieval
 coverage for this one article. `not_found_in_context` means no support in selected
 passages, not proven absence from the whole paper. Sections are heuristic;
 null is valid. Exact text matching is not semantic entailment verification.
@@ -109,14 +109,15 @@ or compare model scores until this pilot has been manually validated.
 The researcher-defined schema is `config/gender_and_beyond_schema.json`.
 `definitions/schema_definition.py` provides a small Pydantic contract, without dynamic models or a
 separately maintained meta-schema file. All fields return lists of textual values,
-optional normalized text, configured qualifier dimensions and source evidence.
+optional normalized text and source evidence. The generic prompt preserves
+proposal versus actual use and other semantic distinctions in the text.
 
 ```bash
 PYTHONPATH=src .venv/bin/python -m slr_data_extraction.definitions.schema_definition config/gender_and_beyond_schema.json
 ```
 
-The response structure is fixed across fields. Field names, qualifier dimensions
-and allowed options are checked after generation; invalid answers fail and remain
+The response structure is fixed across fields. Field names and source evidence
+are checked after generation; invalid answers fail and remain
 in the raw audit records. Status is either `extracted` or `not_found_in_context`.
 Unresolved ambiguities go in `notes`; this does not replace manual review.
 
@@ -130,7 +131,7 @@ vLLM sampling parameter. `config/models.json` only lists candidate models; it do
 not override the execution configuration. Low-level chunking/retrieval functions
 require explicit parameters rather than conflicting defaults.
 
-The simplified schema/output version is `2.0-mvp`, prompt version `3.0-mvp`.
+The simplified schema/output version is `3.1-mvp`, prompt version `4.1-mvp`.
 Previous run folders are preserved, but their formats/prompts are not equivalent.
 Prepare a new run before executing this version:
 
@@ -191,7 +192,7 @@ src/slr_data_extraction/
 ```
 
 `pipeline.py` coordinates extraction. `validation/preflight.py` checks the server
-and token budget; `validation/evidence_validation.py` checks field qualifiers and
+and token budget; `validation/evidence_validation.py` checks field names and
 source evidence. `execution/cli.py` handles run orchestration and artifact saving.
 Source snapshots and hashes cover the entire package, not just `execution/`.
 The vLLM launcher remains in `scripts/serve_pilot.py` outside the client package.

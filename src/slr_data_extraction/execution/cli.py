@@ -20,6 +20,7 @@ from ..validation.preflight import preflight
 from ..pipeline import ExtractionPipeline, PROMPT_VERSION
 from ..parsing.pdf_parser import parse_pdf
 from ..chunking.chunking_creation import CHUNKING_VERSION
+from ..chunking.chunk_selection import SELECTION_VERSIONS
 from ..chunking.evidence_segments import build_catalog, SEGMENT_VERSION
 from ..definitions.schema_definition import fingerprint
 from ..definitions.result_definition import OUTPUT_VERSION
@@ -109,6 +110,8 @@ def main():
                         schema_sha256=fingerprint(pipeline.schema),
                         output_version=OUTPUT_VERSION, prompt_version=pipeline.prompt_version,
                         evidence_mode=pipeline.evidence_mode,
+                        selection_method=pipeline.selection_method,
+                        selection_version=SELECTION_VERSIONS[pipeline.selection_method],
                         segment_version=SEGMENT_VERSION if pipeline.evidence_mode == "segment_ids" else None)
         chunks, prepared = save_preparation(directory, pipeline, article)
         if args.prepare_only:

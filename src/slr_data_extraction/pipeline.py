@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from openai import OpenAI
 from .chunking import PageText, build_chunks, rank_chunks
+from .chunking.chunk_selection import SELECTION_VERSIONS
 from .definitions.result_definition import ArticleExtraction, FieldExtraction
 from .definitions.schema_definition import load_schema, fingerprint
 from .validation.evidence_validation import validate_field
@@ -106,6 +107,9 @@ class ExtractionPipeline:
         self.review = load_schema(schema_path)
         self.schema = self.review.model_dump()
         self.config = config
+        self.selection_method = config.get("selection_method", "lexical")
+        if self.selection_method not in SELECTION_VERSIONS:
+            raise ValueError("Unknown selection_method")
         self.evidence_mode = config.get('evidence_mode', 'verbatim')
         if self.evidence_mode not in {'verbatim', 'segment_ids'}:
             raise ValueError('Unknown evidence_mode')
@@ -159,7 +163,8 @@ class ExtractionPipeline:
                               max_chars=self.config['max_chars'], overlap_chars=self.config['overlap_chars'])
         prepared = []
         for field in self.review.fields:
-            selected = rank_chunks(chunks, field.retrieval_terms, self.config['top_k'])
+            selected = rank_chunks(chunks, field.retrieval_terms, self.config['top_k'],
+                                   method=self.selection_method)
             prepared.append({'field': field, 'selected': selected,
                              'request': self._request(field, selected, pages)})
         return chunks, prepared

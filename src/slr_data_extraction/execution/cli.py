@@ -20,6 +20,7 @@ from ..validation.preflight import preflight
 from ..pipeline import ExtractionPipeline, PROMPT_VERSION
 from ..parsing.pdf_parser import parse_pdf
 from ..chunking.chunking_creation import CHUNKING_VERSION
+from ..chunking.evidence_segments import build_catalog, SEGMENT_VERSION
 from ..definitions.schema_definition import fingerprint
 from ..definitions.result_definition import OUTPUT_VERSION
 
@@ -44,6 +45,8 @@ def save_preparation(directory, pipeline, article):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(source.read_bytes())
     chunks, prepared = pipeline.prepare(article)
+    if pipeline.evidence_mode == 'segment_ids':
+        write_json(directory / 'evidence-catalog.json', build_catalog(chunks))
     write_json(directory / 'chunks.json', [asdict(c) for c in chunks])
     for index, item in enumerate(prepared):
         write_json(directory / f'field-{index + 1:02d}.request.json', item['request'])
@@ -104,7 +107,9 @@ def main():
         manifest.update(schema_id=pipeline.review.schema_id,
                         schema_version=pipeline.review.schema_version,
                         schema_sha256=fingerprint(pipeline.schema),
-                        output_version=OUTPUT_VERSION, prompt_version=PROMPT_VERSION)
+                        output_version=OUTPUT_VERSION, prompt_version=pipeline.prompt_version,
+                        evidence_mode=pipeline.evidence_mode,
+                        segment_version=SEGMENT_VERSION if pipeline.evidence_mode == "segment_ids" else None)
         chunks, prepared = save_preparation(directory, pipeline, article)
         if args.prepare_only:
             manifest['status'] = 'prepared'

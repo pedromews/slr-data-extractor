@@ -55,7 +55,7 @@ input, prompts, chunks and retrieval selection, declared model revision, raw
 responses, errors, timings, environment and a source snapshot. This also captures
 uncommitted code changes. Context checks remain mandatory before generation.
 
-Current versions: schema/output 4.0-mvp, prompt 5.2-mvp. Earlier run directories
+Current versions: schema/output 4.0-mvp, prompt 5.3-mvp. Earlier run directories
 are neither overwritten nor reinterpreted. The loader rejects properties from
 older contracts instead of ignoring them. Results are not migrated automatically.
 

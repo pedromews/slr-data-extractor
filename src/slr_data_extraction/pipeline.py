@@ -63,8 +63,21 @@ Explicitly describe unresolved ambiguity in notes; do not force a value.
 A negative finding is an extracted value, not absence."""
 
 
-SELECTION_PROMPT_VERSION = '6.0-evidence-ids-experiment'
+SELECTION_PROMPT_VERSION = '6.1-evidence-ids-relevance'
 SELECTION_PROMPT = SYSTEM_PROMPT.split('Every value needs verbatim evidence')[0] + """
+Apply the field definition as the inclusion criterion for every value.
+Include an item only if it directly answers that definition and the selected
+evidence supports the complete claim, including the item's role and scope.
+A passage being relevant to the paper's topic is not enough. Do not summarize
+all information in a passage or treat related concepts as interchangeable.
+Do not infer a connection required by the definition merely because concepts
+appear together. If support requires context, select the additional evidence;
+if the supplied passages do not establish it, omit the candidate.
+Return only qualifying items. There is no required number of values, and an
+empty result is appropriate when no candidate meets the field definition.
+Before returning, check each candidate against both the field definition and
+its selected evidence. Remove candidates that fail either check.
+
 For each value, return evidence_ids identifying the supplied passages that
 support it. Select the smallest set that directly supports the value, including
 adjacent passages when context is needed. IDs are references, not evidence text.

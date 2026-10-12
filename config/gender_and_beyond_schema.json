@@ -1,11 +1,11 @@
 {
   "schema_id": "gender_and_beyond",
-  "schema_version": "4.0-mvp",
+  "schema_version": "4.1-mvp",
   "title": "Gender and Beyond",
   "fields": [
     {
       "name": "bias_types",
-      "definition": "Social bias types explicitly discussed in relation to LLMs or generative AI systems, whether empirically observed or described as potential risks.",
+      "definition": "Categories of social or representation bias explicitly discussed in relation to LLMs or generative AI, as observed findings or potential risks. Return each independent category separately. Fairness indicators, bias sources and mitigation strategies are not bias types.",
       "retrieval_terms": [
         "bias",
         "fairness",
@@ -21,7 +21,7 @@
     },
     {
       "name": "se_tasks_or_contexts",
-      "definition": "Software Engineering tasks or generative AI software pipeline contexts explicitly connected to bias or fairness, whether studied empirically or discussed as intended applications.",
+      "definition": "Application tasks or use contexts of LLMs or generative AI explicitly connected to bias or fairness, whether evaluated or proposed. Describe what the system is used to do. Internal pipeline construction, configuration, orchestration and infrastructure are not application tasks merely because they support the system.",
       "retrieval_terms": [
         "task",
         "software engineering",
@@ -37,7 +37,7 @@
     },
     {
       "name": "llm_systems",
-      "definition": "LLMs, assistants or generative systems evaluated as subjects of the bias analysis.",
+      "definition": "Identifiable LLMs, assistants or generative systems actually evaluated as subjects of the study's bias analysis. Generic model categories, proposed architecture components, training techniques and auxiliary tools do not qualify on mention alone.",
       "retrieval_terms": [
         "model",
         "LLM",
@@ -51,7 +51,7 @@
     },
     {
       "name": "bias_sources",
-      "definition": "Sources or origins of bias asserted or hypothesized by the study authors.",
+      "definition": "Factors explicitly asserted or hypothesized by the authors to originate, reintroduce or amplify bias. Accept the level of detail stated in the article, including broad factors; further specificity or empirical proof is not required. Return independent factors separately and preserve their asserted or hypothesized status.",
       "retrieval_terms": [
         "source",
         "origin",
@@ -65,7 +65,7 @@
     },
     {
       "name": "evaluation_methods",
-      "definition": "Methods, datasets and measurements proposed or used to detect or evaluate bias; preserve whether they are proposed or actually used.",
+      "definition": "Methods, datasets or indicators explicitly proposed or used to detect or evaluate bias or fairness. Preserve whether each is proposed or actually used. General performance, security or efficiency measures do not qualify without an explicit bias-evaluation role.",
       "retrieval_terms": [
         "method",
         "methodology",
@@ -80,7 +80,7 @@
     },
     {
       "name": "reported_impacts",
-      "definition": "Consequences of bias explicitly described by the authors, including potential harms and background claims as well as observed effects.",
+      "definition": "Consequences explicitly attributed to bias by the authors, including potential harms, background claims and observed effects. Preserve the claim status and return independent consequences separately. Sources of bias and unrelated security or explainability concerns are not consequences of bias.",
       "retrieval_terms": [
         "impact",
         "consequence",
@@ -93,7 +93,7 @@
     },
     {
       "name": "mitigation_strategies",
-      "definition": "Bias mitigation strategies proposed, implemented or empirically tested by the study.",
+      "definition": "Interventions proposed, implemented or evaluated to reduce or prevent bias; preserve the stated claim status. Return independent strategies separately. An umbrella strategy may retain its explicitly named examples in one item. General security, efficiency or alignment mechanisms require a supported connection to bias mitigation.",
       "retrieval_terms": [
         "mitigation",
         "mitigate",

@@ -131,7 +131,8 @@ vLLM sampling parameter. `config/models/models.json` only lists candidate models
 not override the execution configuration. Low-level chunking/retrieval functions
 require explicit parameters rather than conflicting defaults.
 
-The simplified schema/output version is `4.0-mvp`, prompt version `5.3-mvp`.
+The Gender and Beyond schema is `4.1-mvp`; the output format remains `4.0-mvp`.
+The verbatim prompt is `5.4-no-retrieval-terms`; the evidence-ID prompt is `6.2-evidence-ids-no-retrieval-terms`.
 Previous run folders are preserved, but their formats/prompts are not equivalent.
 Prepare a new run before executing this version:
 
@@ -216,3 +217,7 @@ parser version, settings, warnings and page statuses. Pages requiring review
 block preparation and inference, but the parsed article remains available for
 inspection. JSON input retains its existing metadata; `--study-id` and `--title`
 are PDF-only options. No OCR is performed. The Ollama CLI still takes page JSON.
+
+The model receives only the field name and definition. `retrieval_terms` remain
+in the review schema for chunk ranking, but are excluded from the prompt in both
+verbatim and evidence-ID modes, including full-article batches.

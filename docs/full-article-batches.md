@@ -27,3 +27,8 @@ final evaluation. A not-found result from one batch never erases other findings.
 The first planned real execution is bias_types only: nine calls for P1. Review it
 before executing the other six fields. Bibliographic chunks remain included;
 semantic review must distinguish cited titles from claims of the primary study.
+
+Use `prepare_full_article.py --schema config/gender_and_beyond_schema.json`
+to explicitly use the current review schema. Without this option, preparation
+retains the schema saved in `--source-run`. The selected schema is archived
+and its source path and SHA-256 are recorded in the preparation manifest.

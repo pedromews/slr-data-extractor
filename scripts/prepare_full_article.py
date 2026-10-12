@@ -20,13 +20,15 @@ def main():
     parser.add_argument('--run-dir', required=True, type=Path)
     parser.add_argument('--max-message-chars', type=int, default=14000)
     parser.add_argument('--batch-plan', type=Path, help='Reuse frozen chunk IDs; token verification still required')
+    parser.add_argument('--schema', type=Path, help='Override the saved review schema explicitly')
     args = parser.parse_args()
     source, target = args.source_run, args.run_dir
     article = json.loads((source / 'article.json').read_text())
     config = json.loads((source / 'config.json').read_text())
     if config.get('evidence_mode') != 'segment_ids':
         raise ValueError('Use a source run configured for segment_ids')
-    pipeline = ExtractionPipeline(source / 'schema.json', config)
+    schema_path = args.schema or source / 'schema.json'
+    pipeline = ExtractionPipeline(schema_path, config)
     chunks, _ = pipeline.prepare(article)
     saved_chunks = json.loads((source / 'chunks.json').read_text())
     if json.loads(json.dumps([asdict(c) for c in chunks])) != saved_chunks:
@@ -52,9 +54,10 @@ def main():
     ids = [[c.chunk_id for c in batch] for batch in batches]
     assert [i for batch in ids for i in batch] == [c.chunk_id for c in chunks]
     target.mkdir(parents=True, exist_ok=False)
-    for filename in ['article.json', 'schema.json', 'input.pdf']:
+    for filename in ['article.json', 'input.pdf']:
         if (source / filename).exists():
             shutil.copyfile(source / filename, target / filename)
+    shutil.copyfile(schema_path, target / 'schema.json')
     shutil.copyfile(__file__, target / 'preparation-script.py')
     package = Path(__file__).resolve().parents[1] / 'src/slr_data_extraction'
     for path in package.rglob('*.py'):
@@ -79,6 +82,8 @@ def main():
     write_json(target / 'request-estimates.json', rows)
     manifest = {
         'status': 'prepared_pending_tokenization', 'source_run': str(source.resolve()),
+        'schema_source': str(schema_path.resolve()),
+        'schema_sha256': hashlib.sha256((target / 'schema.json').read_bytes()).hexdigest(),
         'source_sha256': code_hash(), 'prompt_version': pipeline.prompt_version,
         'batching_version': BATCHING_VERSION, 'segment_version': SEGMENT_VERSION,
         'context_policy': 'all chunks in fixed document-order batches; no retrieval filtering',

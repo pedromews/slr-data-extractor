@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--source-run', required=True, type=Path)
     parser.add_argument('--run-dir', required=True, type=Path)
     parser.add_argument('--max-message-chars', type=int, default=14000)
+    parser.add_argument('--batch-plan', type=Path, help='Reuse frozen chunk IDs; token verification still required')
     args = parser.parse_args()
     source, target = args.source_run, args.run_dir
     article = json.loads((source / 'article.json').read_text())
@@ -37,8 +38,17 @@ def main():
         result['extra_body']['chat_template_kwargs'] = {'enable_thinking': False}
         return result
 
-    batches = plan_batches(chunks, request, pipeline.review.fields,
-                           max_message_chars=args.max_message_chars)
+    if args.batch_plan:
+        frozen = json.loads(args.batch_plan.read_text())
+        if (not isinstance(frozen, list) or not frozen or
+                any(not isinstance(batch, list) or not batch for batch in frozen) or
+                [i for batch in frozen for i in batch] != [c.chunk_id for c in chunks]):
+            raise ValueError('Frozen plan must cover all chunks once in document order')
+        by_id = {c.chunk_id: c for c in chunks}
+        batches = [[by_id[i] for i in batch] for batch in frozen]
+    else:
+        batches = plan_batches(chunks, request, pipeline.review.fields,
+                               max_message_chars=args.max_message_chars)
     ids = [[c.chunk_id for c in batch] for batch in batches]
     assert [i for batch in ids for i in batch] == [c.chunk_id for c in chunks]
     target.mkdir(parents=True, exist_ok=False)
@@ -72,7 +82,8 @@ def main():
         'source_sha256': code_hash(), 'prompt_version': pipeline.prompt_version,
         'batching_version': BATCHING_VERSION, 'segment_version': SEGMENT_VERSION,
         'context_policy': 'all chunks in fixed document-order batches; no retrieval filtering',
-        'max_message_chars': args.max_message_chars,
+        'max_message_chars': None if args.batch_plan else args.max_message_chars,
+        'reused_batch_plan': str(args.batch_plan.resolve()) if args.batch_plan else None,
         'batch_plan_sha256': hashlib.sha256((target / 'batches.json').read_bytes()).hexdigest(),
         'source_chunks_sha256': hashlib.sha256((source / 'chunks.json').read_bytes()).hexdigest(),
         'all_chunks_covered_once': True, 'chunk_count': len(chunks),

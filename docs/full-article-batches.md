@@ -32,3 +32,10 @@ Use `prepare_full_article.py --schema config/gender_and_beyond_schema.json`
 to explicitly use the current review schema. Without this option, preparation
 retains the schema saved in `--source-run`. The selected schema is archived
 and its source path and SHA-256 are recorded in the preparation manifest.
+
+For the terms ablation control, prepare from the no-terms run with the same
+`--batch-plan` and `--include-retrieval-terms`. This saves
+`include_retrieval_terms_in_prompt: true` in the run configuration and labels
+the prompt version with `-with-terms-control`. Only the field definition payload
+gains retrieval terms; the system prompt, passages and generation settings stay
+unchanged. Token-check the new requests before running the two selected fields.

@@ -128,6 +128,11 @@ class ExtractionPipeline:
             raise ValueError('Unknown evidence_mode')
         self.prompt_version = (SELECTION_PROMPT_VERSION if self.evidence_mode == 'segment_ids'
                                else PROMPT_VERSION)
+        self.include_retrieval_terms = config.get('include_retrieval_terms_in_prompt', False)
+        if not isinstance(self.include_retrieval_terms, bool):
+            raise ValueError('include_retrieval_terms_in_prompt must be a boolean')
+        if self.include_retrieval_terms:
+            self.prompt_version += '-with-terms-control'
         self.model_id, self.client = config['model_id'], client
 
     def _request(self, definition, selected, pages):
@@ -150,7 +155,10 @@ class ExtractionPipeline:
                         for identifier, entry in catalog.items()]
             output_schema = SelectedField.model_json_schema()
             system_prompt = SELECTION_PROMPT
-        prompt = ('Extraction definition: ' + json.dumps(definition.model_dump(include={'name', 'definition'}), ensure_ascii=False) +
+        field_properties = {'name', 'definition'}
+        if self.include_retrieval_terms:
+            field_properties.add('retrieval_terms')
+        prompt = ('Extraction definition: ' + json.dumps(definition.model_dump(include=field_properties), ensure_ascii=False) +
                   '\nOutput JSON schema: ' + json.dumps(output_schema) +
                   '\nPassages:\n' + '\n\n'.join(passages))
         return dict(model=self.model_id,

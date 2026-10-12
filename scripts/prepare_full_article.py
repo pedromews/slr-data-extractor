@@ -21,10 +21,14 @@ def main():
     parser.add_argument('--max-message-chars', type=int, default=14000)
     parser.add_argument('--batch-plan', type=Path, help='Reuse frozen chunk IDs; token verification still required')
     parser.add_argument('--schema', type=Path, help='Override the saved review schema explicitly')
+    parser.add_argument('--include-retrieval-terms', action='store_true',
+                        help='Include retrieval terms in the prompt for a controlled comparison')
     args = parser.parse_args()
     source, target = args.source_run, args.run_dir
     article = json.loads((source / 'article.json').read_text())
     config = json.loads((source / 'config.json').read_text())
+    if args.include_retrieval_terms:
+        config['include_retrieval_terms_in_prompt'] = True
     if config.get('evidence_mode') != 'segment_ids':
         raise ValueError('Use a source run configured for segment_ids')
     schema_path = args.schema or source / 'schema.json'

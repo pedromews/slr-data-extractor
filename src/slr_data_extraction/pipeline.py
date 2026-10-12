@@ -63,11 +63,14 @@ Explicitly describe unresolved ambiguity in notes; do not force a value.
 A negative finding is an extracted value, not absence."""
 
 
-SELECTION_PROMPT_VERSION = '6.2-evidence-ids-no-retrieval-terms'
+SELECTION_PROMPT_VERSION = '6.3-evidence-ids-claim-status'
 SELECTION_PROMPT = SYSTEM_PROMPT.split('Every value needs verbatim evidence')[0] + """
 Apply the field definition as the inclusion criterion for every value.
 Include an item only if it directly answers that definition and the selected
 evidence supports the complete claim, including the item's role and scope.
+Evidence must support the claim as stated, including its level of certainty.
+When the field definition permits proposed, hypothetical, or background claims,
+do not require empirical confirmation. Preserve that status in the extracted value.
 A passage being relevant to the paper's topic is not enough. Do not summarize
 all information in a passage or treat related concepts as interchangeable.
 Do not infer a connection required by the definition merely because concepts

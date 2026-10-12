@@ -39,3 +39,9 @@ For the terms ablation control, prepare from the no-terms run with the same
 the prompt version with `-with-terms-control`. Only the field definition payload
 gains retrieval terms; the system prompt, passages and generation settings stay
 unchanged. Token-check the new requests before running the two selected fields.
+
+Prompt 6.3 adds a generic claim-status instruction: evidence must support the
+claim at its stated certainty, and empirical confirmation is not required when
+the field permits proposed, hypothetical or background claims. For the P1
+comparison, retain retrieval terms and reuse the terms-control schema and batch
+plan. Run only `bias_types` and `reported_impacts` (18 generation calls).

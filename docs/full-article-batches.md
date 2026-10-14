@@ -45,3 +45,10 @@ claim at its stated certainty, and empirical confirmation is not required when
 the field permits proposed, hypothetical or background claims. For the P1
 comparison, retain retrieval terms and reuse the terms-control schema and batch
 plan. Run only `bias_types` and `reported_impacts` (18 generation calls).
+
+For model comparisons, `--config` selects an explicit model configuration.
+Use the same frozen batch plan and schema; tokenize again with the new server.
+The Llama 3.1 8B AWQ pilot configuration preserves the Qwen3 pilot settings
+and changes only model ID and revision. The Qwen-specific `enable_thinking`
+template argument is retained in requests for comparability; Llama has no
+corresponding thinking toggle. Verify the served template and token budget.

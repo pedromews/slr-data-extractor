@@ -23,10 +23,12 @@ def main():
     parser.add_argument('--schema', type=Path, help='Override the saved review schema explicitly')
     parser.add_argument('--include-retrieval-terms', action='store_true',
                         help='Include retrieval terms in the prompt for a controlled comparison')
+    parser.add_argument('--config', type=Path, help='Use an explicit model configuration')
     args = parser.parse_args()
     source, target = args.source_run, args.run_dir
     article = json.loads((source / 'article.json').read_text())
-    config = json.loads((source / 'config.json').read_text())
+    config_path = args.config or source / 'config.json'
+    config = json.loads(config_path.read_text())
     if args.include_retrieval_terms:
         config['include_retrieval_terms_in_prompt'] = True
     if config.get('evidence_mode') != 'segment_ids':
@@ -86,6 +88,7 @@ def main():
     write_json(target / 'request-estimates.json', rows)
     manifest = {
         'status': 'prepared_pending_tokenization', 'source_run': str(source.resolve()),
+        'config_source': str(config_path.resolve()),
         'schema_source': str(schema_path.resolve()),
         'schema_sha256': hashlib.sha256((target / 'schema.json').read_bytes()).hexdigest(),
         'source_sha256': code_hash(), 'prompt_version': pipeline.prompt_version,

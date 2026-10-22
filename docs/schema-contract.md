@@ -55,7 +55,7 @@ input, prompts, chunks and retrieval selection, declared model revision, raw
 responses, errors, timings, environment and a source snapshot. This also captures
 uncommitted code changes. Context checks remain mandatory before generation.
 
-Current versions: Gender and Beyond schema 4.1-mvp, output 4.0-mvp, verbatim
+Current versions: Gender and Beyond schema 4.2-mvp, output 4.0-mvp, verbatim
 prompt 5.4-no-retrieval-terms, evidence-ID prompt 6.2-evidence-ids-no-retrieval-terms. Earlier run directories
 are neither overwritten nor reinterpreted. The loader rejects properties from
 older contracts instead of ignoring them. Results are not migrated automatically.
@@ -109,3 +109,21 @@ The CLI manifest records the chunking version alongside the source hash.
 The model receives only the field name and definition. `retrieval_terms` remain
 in the review schema for chunk ranking, but are excluded from the prompt in both
 verbatim and evidence-ID modes, including full-article batches.
+
+
+### Manifestations and reported impacts (schema 4.2)
+
+`manifestations` captures the form of bias in generated content or system behavior,
+including explicitly discussed patterns that were not empirically demonstrated.
+`reported_impacts` captures consequences attributed to bias in LLMs or applications
+using them. Non-LLM background examples alone do not qualify. Observing a biased
+response does not establish a downstream harm. Claim status remains in `value`;
+no new output properties or generic pipeline rules are introduced.
+
+P1's demographic skew and performance disparities are discussed targets of the
+proposed auditors, not empirical findings. P2's religious stereotyping and
+gender-differentiated advice are observed manifestations; its impacts remain empty.
+The existing P1 impacts are retained as contextual claims about the generative-AI
+framework (which explicitly includes LLMs), not as model-specific measured harms.
+These reference additions were prepared with AI assistance and require human review.
+Historical runs keep their original schema snapshots and are not rewritten.

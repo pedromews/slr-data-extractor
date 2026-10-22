@@ -1,6 +1,6 @@
 {
   "schema_id": "gender_and_beyond",
-  "schema_version": "4.1-mvp",
+  "schema_version": "4.2-mvp",
   "title": "Gender and Beyond",
   "fields": [
     {
@@ -20,7 +20,7 @@
       ]
     },
     {
-      "name": "se_tasks_or_contexts",
+      "name": "software_engineering_tasks_or_contexts",
       "definition": "Application tasks or use contexts of LLMs or generative AI explicitly connected to bias or fairness, whether evaluated or proposed. Describe what the system is used to do. Internal pipeline construction, configuration, orchestration and infrastructure are not application tasks merely because they support the system.",
       "retrieval_terms": [
         "task",
@@ -80,7 +80,7 @@
     },
     {
       "name": "reported_impacts",
-      "definition": "Consequences explicitly attributed to bias by the authors, including potential harms, background claims and observed effects. Preserve the claim status and return independent consequences separately. Sources of bias and unrelated security or explainability concerns are not consequences of bias.",
+      "definition": "Consequences explicitly attributed by the authors to bias in LLMs or applications using LLMs, including potential harms, background claims and observed consequences for people, groups, activities or the use of these systems. A concrete connection to LLMs must be supported by the article; examples concerning other AI systems alone do not qualify. Preserve the claim status and return independent consequences separately. Biased output patterns or group disparities themselves belong to manifestations; do not infer downstream harms from them. Bias sources, detection metrics and unrelated security or explainability concerns are not impacts of bias.",
       "retrieval_terms": [
         "impact",
         "consequence",
@@ -89,6 +89,19 @@
         "inequality",
         "stereotype",
         "discrimination"
+      ]
+    },
+    {
+      "name": "manifestations",
+      "definition": "Concrete ways bias appears in LLM or generative-AI outputs or behavior, including stereotyped content, demographic skew, differential recommendations and performance disparities between groups. Include observed patterns and explicitly discussed potential patterns, preserving that distinction. Return independent manifestations separately. Bias category names alone, causes, downstream consequences and metric names alone are not manifestations. Do not infer a manifestation solely from a proposed metric or mitigation strategy.",
+      "retrieval_terms": [
+        "stereotype",
+        "output",
+        "response",
+        "demographic skew",
+        "disparity",
+        "recommendation",
+        "behavior"
       ]
     },
     {

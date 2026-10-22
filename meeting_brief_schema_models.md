@@ -36,7 +36,7 @@ in the human spreadsheet:
 | Field | Source | Cardinality | Important distinction |
 | --- | --- | --- | --- |
 | `bias_types` | RQ1 | Multiple | Observed vs merely discussed |
-| `se_tasks_or_contexts` | RQ1.1 | Multiple | Technical SDLC task vs socio-technical context |
+| `software_engineering_tasks_or_contexts` | RQ1.1 | Multiple | Technical SDLC task vs socio-technical context |
 | `llm_systems` | RQ1.2 | Multiple | Subject under test vs auxiliary/judge model |
 | `bias_sources` | RQ1.3 | Multiple | Demonstrated cause vs author hypothesis/background claim |
 | `evaluation_methods` | RQ1.4 | Multiple | Method, dataset and measurement details |

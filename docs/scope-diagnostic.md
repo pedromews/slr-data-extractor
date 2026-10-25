@@ -33,3 +33,26 @@ server; use a different target for execution. Compare category granularity,
 out-of-scope entries, supported consequences and evidence support. Review the raw
 response even when validation fails. Interpret results as exploratory on P1;
 confirm any selected policy on other papers before freezing the experiment.
+
+
+## Individual items experiment
+
+Keep prompt 6.5 in instruction style as the baseline. The `individual-items`
+variant adds only the item-granularity instruction, explicitly allowing several
+values to share an evidence ID. It does not include the earlier `clarified`
+supplement or any P1 answer examples. No splitting or rewriting of model values
+is performed after generation. Run two fresh calls on batch 2:
+
+```sh
+for variant in baseline individual-items; do
+  PYTHONPATH=src "$SCRATCH/slr-client-venv/bin/python" scripts/run_scope_diagnostic.py \
+    --prepared-run runs/pilot-p1-prompt65-instruction-prepared-001 \
+    --field bias_types --batch 2 --variant "$variant" \
+    --run-dir "runs/diagnostic-p1-bias-items-$variant-001" || break
+done
+```
+
+Check whether the four demographic categories become distinct values supported
+by the same supplied segment, without adding causes or consequences as bias types.
+Validation success alone does not establish this. If the targeted test succeeds,
+check compound concepts in other fields and papers before adopting the instruction.

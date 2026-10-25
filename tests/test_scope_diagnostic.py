@@ -14,9 +14,12 @@ class ScopeDiagnosticTests(unittest.TestCase):
                                  {'role': 'user', 'content': 'Definition and frozen passages'}],
                     'extra_body': {'chat_template_kwargs': {'enable_thinking': False}}}
         baseline = module.variant_request(original, 'baseline')
-        changed = module.variant_request(original, 'clarified')
         self.assertEqual(baseline, original)
-        self.assertEqual(changed['messages'][0]['content'], original['messages'][0]['content'] + module.SUPPLEMENT)
-        changed['messages'][0]['content'] = original['messages'][0]['content']
-        self.assertEqual(changed, original)
-        self.assertEqual(original['messages'][0]['content'], 'Original instructions')
+        for variant in ('clarified', 'individual-items'):
+            with self.subTest(variant=variant):
+                changed = module.variant_request(original, variant)
+                self.assertEqual(changed['messages'][0]['content'],
+                                 original['messages'][0]['content'] + module.SUPPLEMENTS[variant])
+                changed['messages'][0]['content'] = original['messages'][0]['content']
+                self.assertEqual(changed, original)
+                self.assertEqual(original['messages'][0]['content'], 'Original instructions')

@@ -29,14 +29,23 @@ SUPPLEMENT = (
 )
 
 
+ITEM_SUPPLEMENT = (
+    "\n\nEach value must directly answer the field definition and represent one "
+    "independently identifiable item. When several items are enumerated in the "
+    "evidence, represent each item separately. Multiple values may cite the same "
+    "evidence ID. Keep compound expressions together when they name a single concept."
+)
+SUPPLEMENTS = {'baseline': '', 'clarified': SUPPLEMENT, 'individual-items': ITEM_SUPPLEMENT}
+
+
 def variant_request(original, variant):
     request = copy.deepcopy(original)
-    if variant not in ('baseline', 'clarified'):
+    if variant not in SUPPLEMENTS:
         raise ValueError('Unknown variant')
-    if variant == 'clarified':
+    if SUPPLEMENTS[variant]:
         if request['messages'][0]['role'] != 'system':
             raise ValueError('Expected a system message')
-        request['messages'][0]['content'] += SUPPLEMENT
+        request['messages'][0]['content'] += SUPPLEMENTS[variant]
     return request
 
 
@@ -47,7 +56,7 @@ def main():
     parser.add_argument('--prepare-only', action='store_true')
     parser.add_argument('--field', required=True)
     parser.add_argument('--batch', type=int, default=2)
-    parser.add_argument('--variant', choices=['baseline', 'clarified'], required=True)
+    parser.add_argument('--variant', choices=list(SUPPLEMENTS), required=True)
     args = parser.parse_args()
     source, target = args.prepared_run, args.run_dir
     schema = json.loads((source / 'schema.json').read_text())
@@ -75,7 +84,7 @@ def main():
                 'purpose': 'Frozen-batch prompt diagnostic; not an end-to-end evaluation',
                 'source_run': str(source.resolve()), 'evidence_ids': ids,
                 'variant': args.variant, 'field': args.field, 'batch': args.batch,
-                'changes': {'system_prompt_append': SUPPLEMENT if args.variant == 'clarified' else ''},
+                'changes': {'system_prompt_append': SUPPLEMENTS[args.variant]},
                 'original_request_sha256': hashlib.sha256(request_path.read_bytes()).hexdigest(),
                 'request_sha256': hashlib.sha256((target / 'request.json').read_bytes()).hexdigest(),
                 'generation_calls_made': 0}

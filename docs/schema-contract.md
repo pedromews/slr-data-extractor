@@ -17,8 +17,9 @@ Each field contains:
 
 The contract contains no topic-specific concepts. Researchers supply the three
 field properties above. The generic prompt handles atomic extraction, literal
-evidence and preservation of meaning. Proposed, implemented and empirically
-evaluated claims must remain distinguishable in the textual values.
+evidence and preservation of meaning. Values are concise concept labels without proposed/observed/implemented status
+markers. Evidence retains the original claim context; a label alone does not
+establish empirical support.
 The removed properties unit_of_extraction, rules and qualifiers are rejected rather than ignored.
 
 ## Fixed output
@@ -55,8 +56,8 @@ input, prompts, chunks and retrieval selection, declared model revision, raw
 responses, errors, timings, environment and a source snapshot. This also captures
 uncommitted code changes. Context checks remain mandatory before generation.
 
-Current versions: Gender and Beyond schema 4.2-mvp, output 4.0-mvp, verbatim
-prompt 5.4-no-retrieval-terms, evidence-ID prompt 6.2-evidence-ids-no-retrieval-terms. Earlier run directories
+Current versions: Gender and Beyond schema 4.5-mvp, output 4.0-mvp, verbatim
+prompt 5.6-concise-review-context, evidence-ID prompt 6.5-evidence-ids-concise-review-context. The instruction presentation adds an -instruction suffix. Earlier run directories
 are neither overwritten nor reinterpreted. The loader rejects properties from
 older contracts instead of ignoring them. Results are not migrated automatically.
 
@@ -117,7 +118,7 @@ verbatim and evidence-ID modes, including full-article batches.
 including explicitly discussed patterns that were not empirically demonstrated.
 `reported_impacts` captures consequences attributed to bias in LLMs or applications
 using them. Non-LLM background examples alone do not qualify. Observing a biased
-response does not establish a downstream harm. Claim status remains in `value`;
+response does not establish a downstream harm. Claim status is retained in the evidence rather than annotated in `value`;
 no new output properties or generic pipeline rules are introduced.
 
 P1's demographic skew and performance disparities are discussed targets of the
@@ -127,3 +128,31 @@ The existing P1 impacts are retained as contextual claims about the generative-A
 framework (which explicitly includes LLMs), not as model-specific measured harms.
 These reference additions were prepared with AI assistance and require human review.
 Historical runs keep their original schema snapshots and are not rewritten.
+
+### Concept labels (schema 4.3)
+
+Prompts 5.5 (verbatim) and 6.4 (evidence IDs) no longer request claim-status
+annotations in values. Inclusion criteria still distinguish studied models from
+auxiliary tools and permit proposed methods where the field definition allows
+them. P1/P2 value labels were aligned; the researcher-edited P3 was preserved.
+Historical runs, reference snapshots and experiment reports keep their original
+wording. No automatic stripping is applied to generated results.
+
+### Descriptive field definitions (schema 4.4)
+
+Definitions describe concepts and scope rather than instructing the model. Generic
+item separation and evidence requirements remain in the extraction prompts. The
+task/context field now also covers activities represented in generated content,
+without implying that the system performs those activities or that bias was found
+in every evaluated task. Other fields retain their inclusion boundaries, including
+the then LLM-specific scope of reported impacts (broadened in schema 4.5). Reference annotations and historical
+run snapshots are not automatically migrated by this wording change.
+
+### Generative-AI impacts (schema 4.5)
+
+Reported impacts encompass LLMs and other generative AI systems, including
+image-generation models. The article must support the connection to generative
+AI; an example involving another AI system alone is insufficient. Output
+stereotypes remain manifestations rather than automatic evidence of downstream
+harms. P6 now includes the risk discussed in its introduction. Task scope,
+prompts and historical run snapshots are unchanged.

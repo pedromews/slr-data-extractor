@@ -24,11 +24,14 @@ def main():
     parser.add_argument('--include-retrieval-terms', action='store_true',
                         help='Include retrieval terms in the prompt for a controlled comparison')
     parser.add_argument('--config', type=Path, help='Use an explicit model configuration')
+    parser.add_argument('--field-prompt-style', choices=['json', 'instruction'])
     args = parser.parse_args()
     source, target = args.source_run, args.run_dir
     article = json.loads((source / 'article.json').read_text())
     config_path = args.config or source / 'config.json'
     config = json.loads(config_path.read_text())
+    if args.field_prompt_style:
+        config['field_prompt_style'] = args.field_prompt_style
     if args.include_retrieval_terms:
         config['include_retrieval_terms_in_prompt'] = True
     if config.get('evidence_mode') != 'segment_ids':

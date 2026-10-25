@@ -56,6 +56,7 @@ def main():
     parser.add_argument('--run-dir', type=Path, required=True)
     parser.add_argument('--field', required=True)
     parser.add_argument('--resume', action='store_true')
+    parser.add_argument('--batch', type=int, help='Run only this one-based batch as a partial diagnostic')
     args = parser.parse_args()
     source, target = args.prepared_run, args.run_dir
     manifest = json.loads((source / 'manifest.json').read_text())
@@ -90,7 +91,10 @@ def main():
         if request != expected:
             raise ValueError('Current code/config cannot reproduce approved request')
         items.append({'field': field, 'selected': selected, 'request': request})
-    identity = {'field': args.field, 'source_sha256': code_hash(),
+    if args.batch is not None and not 1 <= args.batch <= len(items):
+        raise ValueError('Batch number is outside the prepared plan')
+    selected_batches = [args.batch] if args.batch is not None else list(range(1, len(items) + 1))
+    identity = {'selected_batches': selected_batches, 'field': args.field, 'source_sha256': code_hash(),
                 'runner_sha256': digest(Path(__file__)),
                 'inputs': {p.name: digest(p) for p in sorted(source.glob('*.json'))},
                 'token_approval_sha256': digest(args.token_check / 'summary.json')}
@@ -107,7 +111,8 @@ def main():
     with (target / '.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         results, errors = [], []
-        summary = {'status': 'running', 'field': args.field, 'planned_calls': len(items),
+        summary = {'status': 'running', 'field': args.field, 'planned_calls': len(selected_batches),
+                   'selected_batches': selected_batches, 'article_complete': args.batch is None,
                    'started_at': datetime.now(timezone.utc).isoformat(),
                    'new_calls_this_invocation': 0, 'failure_policy': 'No retries; resume pending only'}
         write_json(target / 'manifest.json', summary)
@@ -126,7 +131,8 @@ def main():
                     write_json(target / f'{name}.json', value)
             with OpenAI(base_url=base, api_key='EMPTY', max_retries=0, timeout=300) as client:
                 pipeline.client = client
-                for bi, item in enumerate(items, 1):
+                for bi in selected_batches:
+                    item = items[bi - 1]
                     directory = target / f'batch-{bi:02d}'
                     state = attempt_state(directory)
                     print(f'Batch {bi}/{len(items)}: {state}', flush=True)
@@ -148,12 +154,12 @@ def main():
                         errors.append({'batch': bi, 'error': str(exc)})
                         print('  failed:', exc, flush=True)
             consolidated, provenance = consolidate(args.field, results)
-            report = {'complete': not errors, 'validated_batches': [b for b, _ in results],
+            report = {'complete': not errors and args.batch is None, 'selected_batches': selected_batches, 'validated_batches': [b for b, _ in results],
                       'errors': errors, 'value_batch_provenance': provenance,
                       'field': consolidated.model_dump()}
             write_json(target / 'consolidated-review.json', report)
             # An incomplete run must never look like an article-wide absence.
-            if not errors:
+            if not errors and args.batch is None:
                 write_json(target / 'field-result.json', consolidated.model_dump())
             summary.update(status='completed_with_errors' if errors else 'completed',
                            passed_batches=len(results), failed_batches=len(errors))

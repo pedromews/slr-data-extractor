@@ -1,11 +1,11 @@
 {
   "schema_id": "gender_and_beyond",
-  "schema_version": "4.2-mvp",
+  "schema_version": "4.5-mvp",
   "title": "Gender and Beyond",
   "fields": [
     {
       "name": "bias_types",
-      "definition": "Categories of social or representation bias explicitly discussed in relation to LLMs or generative AI, as observed findings or potential risks. Return each independent category separately. Fairness indicators, bias sources and mitigation strategies are not bias types.",
+      "definition": "Categories of social or representation bias explicitly discussed in relation to LLMs or generative AI, encompassing observed findings and potential risks. Fairness indicators, sources of bias and mitigation strategies fall outside this field.",
       "retrieval_terms": [
         "bias",
         "fairness",
@@ -21,7 +21,7 @@
     },
     {
       "name": "software_engineering_tasks_or_contexts",
-      "definition": "Application tasks or use contexts of LLMs or generative AI explicitly connected to bias or fairness, whether evaluated or proposed. Describe what the system is used to do. Internal pipeline construction, configuration, orchestration and infrastructure are not application tasks merely because they support the system.",
+      "definition": "Software engineering activities and professional or educational contexts in which bias or fairness in LLMs or generative AI is explicitly investigated or discussed. Activities may be performed using these systems or represented in their generated content. The extraction target is the specific activity or context, whether evaluated or proposed. Profession names and assigned roles alone do not establish the performance or representation of a technical activity. Evaluation of an activity does not imply that bias was found. Internal pipeline construction, configuration, orchestration and infrastructure fall outside this scope when their only role is supporting the system.",
       "retrieval_terms": [
         "task",
         "software engineering",
@@ -37,7 +37,7 @@
     },
     {
       "name": "llm_systems",
-      "definition": "Identifiable LLMs, assistants or generative systems actually evaluated as subjects of the study's bias analysis. Generic model categories, proposed architecture components, training techniques and auxiliary tools do not qualify on mention alone.",
+      "definition": "Identifiable LLMs, assistants or generative systems actually evaluated as subjects of the study's bias analysis. Mention of a generic model category, proposed architecture component, training technique or auxiliary tool alone does not establish its role as an evaluated subject.",
       "retrieval_terms": [
         "model",
         "LLM",
@@ -51,7 +51,7 @@
     },
     {
       "name": "bias_sources",
-      "definition": "Factors explicitly asserted or hypothesized by the authors to originate, reintroduce or amplify bias. Accept the level of detail stated in the article, including broad factors; further specificity or empirical proof is not required. Return independent factors separately and preserve their asserted or hypothesized status.",
+      "definition": "Factors explicitly asserted or hypothesized by the authors to originate, reintroduce or amplify bias. The scope encompasses broad factors as well as specific mechanisms, at the level of detail provided in the article. Empirical confirmation is not a prerequisite for a factor explicitly identified as a possible source.",
       "retrieval_terms": [
         "source",
         "origin",
@@ -65,7 +65,7 @@
     },
     {
       "name": "evaluation_methods",
-      "definition": "Methods, datasets or indicators explicitly proposed or used to detect or evaluate bias or fairness. Preserve whether each is proposed or actually used. General performance, security or efficiency measures do not qualify without an explicit bias-evaluation role.",
+      "definition": "Methods, datasets or indicators explicitly proposed or used to detect or evaluate bias or fairness. General performance, security or efficiency measures fall within this field only when the article establishes their role in bias evaluation.",
       "retrieval_terms": [
         "method",
         "methodology",
@@ -80,7 +80,7 @@
     },
     {
       "name": "reported_impacts",
-      "definition": "Consequences explicitly attributed by the authors to bias in LLMs or applications using LLMs, including potential harms, background claims and observed consequences for people, groups, activities or the use of these systems. A concrete connection to LLMs must be supported by the article; examples concerning other AI systems alone do not qualify. Preserve the claim status and return independent consequences separately. Biased output patterns or group disparities themselves belong to manifestations; do not infer downstream harms from them. Bias sources, detection metrics and unrelated security or explainability concerns are not impacts of bias.",
+      "definition": "Consequences explicitly attributed by the authors to bias in LLMs, other generative AI systems, or applications using these systems. The scope encompasses potential harms, background claims and observed consequences for people, groups, activities or the use of these systems. An article-supported connection to generative AI is required; examples concerning other AI systems alone fall outside this field. Biased output patterns or group disparities themselves are manifestations and do not by themselves establish downstream harms. Sources of bias, detection metrics and unrelated security or explainability concerns fall outside this field.",
       "retrieval_terms": [
         "impact",
         "consequence",
@@ -93,7 +93,7 @@
     },
     {
       "name": "manifestations",
-      "definition": "Concrete ways bias appears in LLM or generative-AI outputs or behavior, including stereotyped content, demographic skew, differential recommendations and performance disparities between groups. Include observed patterns and explicitly discussed potential patterns, preserving that distinction. Return independent manifestations separately. Bias category names alone, causes, downstream consequences and metric names alone are not manifestations. Do not infer a manifestation solely from a proposed metric or mitigation strategy.",
+      "definition": "Concrete ways bias appears in LLM or generative-AI outputs or behavior, such as stereotyped content, demographic skew, differential recommendations and performance disparities between groups. The scope encompasses observed patterns and explicitly discussed potential patterns. Bias category names alone, causes, downstream consequences and metric names alone are not manifestations. The existence of a proposed metric or mitigation strategy does not by itself establish a manifestation.",
       "retrieval_terms": [
         "stereotype",
         "output",
@@ -106,7 +106,7 @@
     },
     {
       "name": "mitigation_strategies",
-      "definition": "Interventions proposed, implemented or evaluated to reduce or prevent bias; preserve the stated claim status. Return independent strategies separately. An umbrella strategy may retain its explicitly named examples in one item. General security, efficiency or alignment mechanisms require a supported connection to bias mitigation.",
+      "definition": "Interventions proposed, implemented or evaluated to reduce or prevent bias. The scope encompasses individual interventions and umbrella strategies with their explicitly named examples. General security, efficiency or alignment mechanisms fall within this field only when the article establishes their connection to bias mitigation.",
       "retrieval_terms": [
         "mitigation",
         "mitigate",

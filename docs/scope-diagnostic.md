@@ -56,3 +56,24 @@ Check whether the four demographic categories become distinct values supported
 by the same supplied segment, without adding causes or consequences as bias types.
 Validation success alone does not establish this. If the targeted test succeeds,
 check compound concepts in other fields and papers before adopting the instruction.
+
+
+## Short system prompt comparison
+
+The `short` variant replaces the system message instead of appending instructions.
+The user message (definition, terms, output schema and passages) and all request
+parameters remain identical. The manifest records the full replacement text;
+production prompt 6.5 is unchanged. This tests a bundle of wording changes, not
+length alone. Compare two fresh calls on `bias_types`, batch 2:
+
+```sh
+for variant in baseline short; do
+  PYTHONPATH=src "$SCRATCH/slr-client-venv/bin/python" scripts/run_scope_diagnostic.py \
+    --prepared-run runs/pilot-p1-prompt65-instruction-prepared-001 \
+    --field bias_types --batch 2 --variant "$variant" \
+    --run-dir "runs/diagnostic-p1-bias-short-$variant-001" || break
+done
+```
+
+Review separated categories, extraneous causes/consequences, missing categories,
+and evidence IDs. Do not adopt the variant solely because it passes validation.

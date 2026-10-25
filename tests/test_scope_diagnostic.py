@@ -23,3 +23,15 @@ class ScopeDiagnosticTests(unittest.TestCase):
                 changed['messages'][0]['content'] = original['messages'][0]['content']
                 self.assertEqual(changed, original)
                 self.assertEqual(original['messages'][0]['content'], 'Original instructions')
+
+    def test_short_replaces_only_system_and_preserves_source(self):
+        original = {'model': 'model', 'seed': 42, 'temperature': 0,
+                    'messages': [{'role': 'system', 'content': 'Original instructions'},
+                                 {'role': 'user', 'content': 'Frozen user message'}],
+                    'extra_body': {'chat_template_kwargs': {'enable_thinking': False}}}
+        changed = module.variant_request(original, 'short')
+        self.assertEqual(changed['messages'][0]['content'], module.SHORT_SYSTEM_PROMPT)
+        self.assertNotIn('Original instructions', changed['messages'][0]['content'])
+        changed['messages'][0]['content'] = 'Original instructions'
+        self.assertEqual(changed, original)
+        self.assertEqual(original['messages'][0]['content'], 'Original instructions')

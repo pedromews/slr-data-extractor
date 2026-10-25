@@ -85,6 +85,7 @@ def main():
     parser.add_argument('--run-dir', type=Path, required=True)
     parser.add_argument('--prepare-only', action='store_true')
     parser.add_argument('--field', required=True)
+    parser.add_argument('--model-config', type=Path, help='Override only model identity; preserve the saved request parameters')
     parser.add_argument('--batch', type=int, default=2)
     parser.add_argument('--variant', choices=[*SUPPLEMENTS, 'short'], required=True)
     args = parser.parse_args()
@@ -103,7 +104,23 @@ def main():
         raise ValueError('Cannot identify the supplied evidence segments')
     selected = {key: catalog[key] for key in ids}
     config = json.loads((source / 'config.json').read_text())
+    model_changes = {}
+    if args.model_config:
+        candidate = json.loads(args.model_config.read_text())
+        for key in ('base_url', 'vllm_version', 'dtype', 'max_model_len', 'generation_config'):
+            if candidate[key] != config[key]:
+                raise ValueError(f'Model comparison must preserve {key}')
+        if not re.fullmatch(r'[0-9a-f]{40}', candidate.get('model_revision', '')):
+            raise ValueError('Model revision must be pinned')
+        model_changes = {'model': {'from': request['model'], 'to': candidate['model_id']},
+                         'model_revision': candidate['model_revision']}
+        request['model'] = candidate['model_id']
+        config = {**config, 'model_id': candidate['model_id'],
+                  'model_revision': candidate['model_revision']}
     target.mkdir(parents=True, exist_ok=False)
+    write_json(target / 'effective-config.json', config)
+    if args.model_config:
+        shutil.copyfile(args.model_config, target / 'requested-model-config.json')
     for name in ['config.json', 'schema.json', 'manifest.json']:
         shutil.copyfile(source / name, target / ('source-' + name))
     shutil.copyfile(__file__, target / 'diagnostic-script.py')
@@ -114,6 +131,7 @@ def main():
                 'purpose': 'Frozen-batch prompt diagnostic; not an end-to-end evaluation',
                 'source_run': str(source.resolve()), 'evidence_ids': ids,
                 'variant': args.variant, 'field': args.field, 'batch': args.batch,
+                'model_changes': model_changes,
                 'changes': ({'system_prompt_replace': SHORT_SYSTEM_PROMPT} if args.variant == 'short'
                             else {'system_prompt_append': SUPPLEMENTS[args.variant]}),
                 'original_request_sha256': hashlib.sha256(request_path.read_bytes()).hexdigest(),

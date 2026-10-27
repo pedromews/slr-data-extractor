@@ -15,7 +15,7 @@ class ScopeDiagnosticTests(unittest.TestCase):
                     'extra_body': {'chat_template_kwargs': {'enable_thinking': False}}}
         baseline = module.variant_request(original, 'baseline')
         self.assertEqual(baseline, original)
-        for variant in ('clarified', 'individual-items'):
+        for variant in ('clarified', 'individual-items', 'specific-support'):
             with self.subTest(variant=variant):
                 changed = module.variant_request(original, variant)
                 self.assertEqual(changed['messages'][0]['content'],

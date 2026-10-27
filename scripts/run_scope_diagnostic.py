@@ -35,7 +35,18 @@ ITEM_SUPPLEMENT = (
     "evidence, represent each item separately. Multiple values may cite the same "
     "evidence ID. Keep compound expressions together when they name a single concept."
 )
-SUPPLEMENTS = {'baseline': '', 'clarified': SUPPLEMENT, 'individual-items': ITEM_SUPPLEMENT}
+SPECIFIC_SUPPORT_SUPPLEMENT = (
+    "\n\nFor fields asking for categories or types, a general mention of the topic "
+    "does not establish a specific category. Include a category only when the "
+    "supplied passage names it or describes the distinguishing attribute that "
+    "supports that category. The exact category label need not appear verbatim. "
+    "Do not supply that attribute from retrieval terms, examples, or general "
+    "knowledge. A section number alone cannot support a category. "
+    "If none of the supplied passages supports a specific category within the "
+    "field definition, return not_found_in_context with values=[]."
+)
+SUPPLEMENTS = {'baseline': '', 'clarified': SUPPLEMENT, 'individual-items': ITEM_SUPPLEMENT,
+               'specific-support': SPECIFIC_SUPPORT_SUPPLEMENT}
 
 
 SHORT_SYSTEM_PROMPT = """Extract the requested field from the supplied article passages.

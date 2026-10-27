@@ -102,3 +102,28 @@ done
 Check preservation of supported demographic categories in batch 2 and unsupported
 categories in batch 5. An existing evidence ID does not prove semantic support.
 This four-call diagnostic tests term inclusion, not general model superiority.
+
+
+## Specific category support
+
+Compare `baseline` with `specific-support` on Llama, batches 2 and 5 of
+`bias_types`. Keep retrieval terms and all other request content unchanged.
+The supplement requires a named category or a described distinguishing attribute,
+without requiring the exact label verbatim. Generic topic mentions and section
+numbers alone do not establish a category. No P1 answer labels are supplied.
+This variant does not include the earlier experimental supplements.
+
+```sh
+for batch in 2 5; do
+  for variant in baseline specific-support; do
+    PYTHONPATH=src "$SCRATCH/slr-client-venv/bin/python" scripts/run_scope_diagnostic.py \
+      --prepared-run runs/pilot-p1-prompt65-llama-prepared-001 \
+      --field bias_types --batch "$batch" --variant "$variant" \
+      --run-dir "runs/diagnostic-p1-llama-support-batch$batch-$variant-001" || break 2
+  done
+done
+```
+
+Review both retention of supported categories in batch 2 and abstention in batch 5.
+A reduction in output count alone is not success. Keep production prompt 6.5
+unchanged until broader review; this is a targeted exploratory diagnostic.

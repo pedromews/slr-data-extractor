@@ -127,3 +127,30 @@ done
 Review both retention of supported categories in batch 2 and abstention in batch 5.
 A reduction in output count alone is not success. Keep production prompt 6.5
 unchanged until broader review; this is a targeted exploratory diagnostic.
+
+## Segment IDs versus literal quotations
+
+Compare fresh `baseline` and `verbatim` calls on Llama for batches 2 and 5 of
+`bias_types`. The verbatim variant preserves the shared inclusion/value rules,
+field definition, retrieval terms and sampling parameters. It replaces the
+ID-specific instructions and output schema with literal-quotation requirements,
+and presents the full frozen chunks with page/section metadata. Literal quotes
+undergo source, page and section validation. Raw responses are retained on failure.
+
+This is a bundled evidence-interface comparison, not an isolated test of IDs:
+context presentation, output contract and evidence instructions change together.
+Production prompts are unchanged. Review semantic support separately from exact
+quotation errors; a structurally invalid response can still be informative.
+
+Run each arm in a new directory, including if the other arm fails:
+
+```sh
+for batch in 2 5; do
+  for variant in baseline verbatim; do
+    PYTHONPATH=src "$SCRATCH/slr-client-venv/bin/python" scripts/run_scope_diagnostic.py \
+      --prepared-run runs/pilot-p1-prompt65-llama-prepared-001 \
+      --field bias_types --batch "$batch" --variant "$variant" \
+      --run-dir "runs/diagnostic-p1-llama-evidence-batch$batch-$variant-001"
+  done
+done
+```

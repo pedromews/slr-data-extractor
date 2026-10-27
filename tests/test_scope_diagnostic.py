@@ -54,3 +54,18 @@ class ScopeDiagnosticTests(unittest.TestCase):
                                {'role': 'user', 'content': 'Field\nOutput JSON schema: {}\nPassages:\nText'}]}
         with self.assertRaises(ValueError):
             module.variant_request(request, 'no-terms')
+
+    def test_verbatim_preserves_parameters_and_field_header(self):
+        original = {'model': 'model', 'seed': 42, 'extra_body': {'top_k': -1},
+                    'messages': [{'role': 'system', 'content': 'Shared rules.\nFor each value, return evidence_ids from passages.'},
+                                 {'role': 'user', 'content': 'Field and terms\nOutput JSON schema: IDs\nPassages:\nSegments'}]}
+        generated = {'messages': [{}, {'content': 'Field and terms\nOutput JSON schema: Quotes\nPassages:\nFull chunk'}]}
+        result = module.verbatim_request(original, generated)
+        self.assertEqual(result['messages'][1]['content'], generated['messages'][1]['content'])
+        self.assertTrue(result['messages'][0]['content'].startswith('Shared rules.\n'))
+        self.assertNotIn('return evidence_ids', result['messages'][0]['content'])
+        result['messages'] = original['messages']
+        self.assertEqual(result, original)
+        generated['messages'][1]['content'] = 'Changed definition\nOutput JSON schema: Quotes'
+        with self.assertRaises(ValueError):
+            module.verbatim_request(original, generated)

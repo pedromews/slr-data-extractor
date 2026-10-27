@@ -13,6 +13,10 @@ import httpx
 from openai import OpenAI
 from slr_data_extraction.execution.audit import write_json
 from slr_data_extraction.chunking.evidence_segments import resolve_selection
+from slr_data_extraction.pipeline import ExtractionPipeline, SYSTEM_PROMPT
+from slr_data_extraction.definitions.result_definition import FieldExtraction
+from slr_data_extraction.validation.evidence_validation import validate_field
+from dataclasses import asdict
 
 
 SUPPLEMENT = (
@@ -101,6 +105,25 @@ def variant_request(original, variant):
     return request
 
 
+def verbatim_request(original, generated):
+    """Preserve field presentation and sampling; replace only evidence interface."""
+    request = copy.deepcopy(original)
+    prefix, separator, _ = original['messages'][0]['content'].partition(
+        'For each value, return evidence_ids')
+    if not separator:
+        raise ValueError('Expected the baseline segment-ID prompt')
+    quote_rules = 'Every value needs verbatim evidence' + SYSTEM_PROMPT.split(
+        'Every value needs verbatim evidence', 1)[1]
+    request['messages'][0]['content'] = (prefix + quote_rules +
+        '\nReturn only the JSON object, without Markdown fences or surrounding explanation.')
+    old_header = original['messages'][1]['content'].split('\nOutput JSON schema: ', 1)[0]
+    new_header, body = generated['messages'][1]['content'].split('\nOutput JSON schema: ', 1)
+    if new_header != old_header:
+        raise ValueError('Field definition or presentation changed')
+    request['messages'][1]['content'] = old_header + '\nOutput JSON schema: ' + body
+    return request
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--prepared-run', type=Path, required=True)
@@ -109,7 +132,7 @@ def main():
     parser.add_argument('--field', required=True)
     parser.add_argument('--model-config', type=Path, help='Override only model identity; preserve the saved request parameters')
     parser.add_argument('--batch', type=int, default=2)
-    parser.add_argument('--variant', choices=[*SUPPLEMENTS, 'short', 'no-terms'], required=True)
+    parser.add_argument('--variant', choices=[*SUPPLEMENTS, 'short', 'no-terms', 'verbatim'], required=True)
     args = parser.parse_args()
     source, target = args.prepared_run, args.run_dir
     schema = json.loads((source / 'schema.json').read_text())
@@ -118,7 +141,7 @@ def main():
     original = json.loads(request_path.read_text())
     if 'response_format' in original:
         raise ValueError('Expected the unconstrained comparison request')
-    request = variant_request(original, args.variant)
+    request = variant_request(original, 'baseline' if args.variant == 'verbatim' else args.variant)
     catalog = json.loads((source / 'evidence-catalog.json').read_text())
     passages = original['messages'][1]['content'].split('\nPassages:\n', 1)[1]
     ids = re.findall(r'^\[([^;\n]+); page ', passages, re.MULTILINE)
@@ -141,8 +164,26 @@ def main():
         request['model'] = candidate['model_id']
         config = {**config, 'model_id': candidate['model_id'],
                   'model_revision': candidate['model_revision']}
+    if args.variant == 'verbatim':
+        config['evidence_mode'] = 'verbatim'
+        article = json.loads((source / 'article.json').read_text())
+        pipeline = ExtractionPipeline(source / 'schema.json', config)
+        chunks, _ = pipeline.prepare(article)
+        if [asdict(c) for c in chunks] != json.loads((source / 'chunks.json').read_text()):
+            # JSON round-trip normalizes tuple/list representations.
+            if json.loads(json.dumps([asdict(c) for c in chunks])) != json.loads((source / 'chunks.json').read_text()):
+                raise ValueError('Chunks changed')
+        batches = json.loads((source / 'batches.json').read_text())
+        by_id = {c.chunk_id: c for c in chunks}
+        selected_chunks = [by_id[key] for key in batches[args.batch - 1]]
+        definition = pipeline.review.fields[index - 1]
+        generated = pipeline._request(definition, selected_chunks, article['pages'])
+        request = verbatim_request(request, generated)
     target.mkdir(parents=True, exist_ok=False)
     write_json(target / 'effective-config.json', config)
+    if args.variant == 'verbatim':
+        write_json(target / 'selected-chunks.json', [asdict(c) for c in selected_chunks])
+        shutil.copyfile(source / 'article.json', target / 'article.json')
     if args.model_config:
         shutil.copyfile(args.model_config, target / 'requested-model-config.json')
     for name in ['config.json', 'schema.json', 'manifest.json']:
@@ -156,7 +197,9 @@ def main():
                 'source_run': str(source.resolve()), 'evidence_ids': ids,
                 'variant': args.variant, 'field': args.field, 'batch': args.batch,
                 'model_changes': model_changes,
-                'changes': ({'system_prompt_replace': SHORT_SYSTEM_PROMPT} if args.variant == 'short'
+                'changes': ({'evidence_mode': 'verbatim', 'context': 'full frozen chunks',
+                             'system_prompt_replace': request['messages'][0]['content']} if args.variant == 'verbatim'
+                            else {'system_prompt_replace': SHORT_SYSTEM_PROMPT} if args.variant == 'short'
                             else {'user_retrieval_terms_removed': True} if args.variant == 'no-terms'
                             else {'system_prompt_append': SUPPLEMENTS[args.variant]}),
                 'original_request_sha256': hashlib.sha256(request_path.read_bytes()).hexdigest(),
@@ -198,7 +241,11 @@ def main():
             choice = raw.parse().choices[0]
         if choice.finish_reason != 'stop' or choice.message.refusal:
             raise ValueError(f'Incomplete/refused generation: {choice.finish_reason}')
-        result = resolve_selection(choice.message.content or '', selected)
+        if args.variant == 'verbatim':
+            result = FieldExtraction.model_validate_json(choice.message.content or '')
+            validate_field(result, definition, selected_chunks, article['pages'])
+        else:
+            result = resolve_selection(choice.message.content or '', selected)
         if result.field_name != args.field:
             raise ValueError('Unexpected field')
         write_json(target / 'field-result.json', result.model_dump())

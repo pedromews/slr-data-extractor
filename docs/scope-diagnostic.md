@@ -77,3 +77,28 @@ done
 
 Review separated categories, extraneous causes/consequences, missing categories,
 and evidence IDs. Do not adopt the variant solely because it passes validation.
+
+
+## Retrieval terms ablation on Llama
+
+Compare fresh baseline and `no-terms` calls for `bias_types` on batches 2 and 5.
+Use the Llama preparation directly. Only the retrieval-terms line in the user
+message is removed; the system prompt, definition, output schema, passages and
+sampling parameters remain unchanged. No retrieval filtering occurs in this
+full-article experiment. The source schema is preserved for provenance; the
+manifest records removal and the effective configuration sets term inclusion false.
+
+```sh
+for batch in 2 5; do
+  for variant in baseline no-terms; do
+    PYTHONPATH=src "$SCRATCH/slr-client-venv/bin/python" scripts/run_scope_diagnostic.py \
+      --prepared-run runs/pilot-p1-prompt65-llama-prepared-001 \
+      --field bias_types --batch "$batch" --variant "$variant" \
+      --run-dir "runs/diagnostic-p1-llama-terms-batch$batch-$variant-001" || break 2
+  done
+done
+```
+
+Check preservation of supported demographic categories in batch 2 and unsupported
+categories in batch 5. An existing evidence ID does not prove semantic support.
+This four-call diagnostic tests term inclusion, not general model superiority.

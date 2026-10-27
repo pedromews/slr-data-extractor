@@ -35,3 +35,22 @@ class ScopeDiagnosticTests(unittest.TestCase):
         changed['messages'][0]['content'] = 'Original instructions'
         self.assertEqual(changed, original)
         self.assertEqual(original['messages'][0]['content'], 'Original instructions')
+
+    def test_no_terms_preserves_everything_else_including_passage_text(self):
+        prefix = 'Extract field.\nField definition:\nCategories.'
+        terms = '\nRetrieval terms: ["gender", "bias"]'
+        suffix = '\nOutput JSON schema: {}\nPassages:\nRetrieval terms: literal article text'
+        original = {'model': 'model', 'seed': 42,
+                    'messages': [{'role': 'system', 'content': 'Original system'},
+                                 {'role': 'user', 'content': prefix + terms + suffix}]}
+        changed = module.variant_request(original, 'no-terms')
+        self.assertEqual(changed['messages'][1]['content'], prefix + suffix)
+        changed['messages'][1]['content'] = prefix + terms + suffix
+        self.assertEqual(changed, original)
+        self.assertEqual(original['messages'][1]['content'], prefix + terms + suffix)
+
+    def test_no_terms_refuses_missing_terms(self):
+        request = {'messages': [{'role': 'system', 'content': 'System'},
+                               {'role': 'user', 'content': 'Field\nOutput JSON schema: {}\nPassages:\nText'}]}
+        with self.assertRaises(ValueError):
+            module.variant_request(request, 'no-terms')

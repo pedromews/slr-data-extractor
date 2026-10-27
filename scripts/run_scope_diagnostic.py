@@ -66,9 +66,20 @@ Use notes for unresolved ambiguity, or null."""
 
 def variant_request(original, variant):
     request = copy.deepcopy(original)
-    if variant not in (*SUPPLEMENTS, 'short'):
+    if variant not in (*SUPPLEMENTS, 'short', 'no-terms'):
         raise ValueError('Unknown variant')
-    if variant == 'short':
+    if variant == 'no-terms':
+        message = request['messages'][1]
+        if message['role'] != 'user':
+            raise ValueError('Expected a user message')
+        prefix, passages = message['content'].split('\nPassages:\n', 1)
+        header, output_schema = prefix.split('\nOutput JSON schema: ', 1)
+        header, terms = header.rsplit('\nRetrieval terms: ', 1)
+        if not isinstance(json.loads(terms), list):
+            raise ValueError('Expected retrieval terms as a JSON array')
+        message['content'] = (header + '\nOutput JSON schema: ' + output_schema
+                              + '\nPassages:\n' + passages)
+    elif variant == 'short':
         if request['messages'][0]['role'] != 'system':
             raise ValueError('Expected a system message')
         request['messages'][0]['content'] = SHORT_SYSTEM_PROMPT
@@ -87,7 +98,7 @@ def main():
     parser.add_argument('--field', required=True)
     parser.add_argument('--model-config', type=Path, help='Override only model identity; preserve the saved request parameters')
     parser.add_argument('--batch', type=int, default=2)
-    parser.add_argument('--variant', choices=[*SUPPLEMENTS, 'short'], required=True)
+    parser.add_argument('--variant', choices=[*SUPPLEMENTS, 'short', 'no-terms'], required=True)
     args = parser.parse_args()
     source, target = args.prepared_run, args.run_dir
     schema = json.loads((source / 'schema.json').read_text())
@@ -104,6 +115,8 @@ def main():
         raise ValueError('Cannot identify the supplied evidence segments')
     selected = {key: catalog[key] for key in ids}
     config = json.loads((source / 'config.json').read_text())
+    if args.variant == 'no-terms':
+        config['include_retrieval_terms_in_prompt'] = False
     model_changes = {}
     if args.model_config:
         candidate = json.loads(args.model_config.read_text())
@@ -133,6 +146,7 @@ def main():
                 'variant': args.variant, 'field': args.field, 'batch': args.batch,
                 'model_changes': model_changes,
                 'changes': ({'system_prompt_replace': SHORT_SYSTEM_PROMPT} if args.variant == 'short'
+                            else {'user_retrieval_terms_removed': True} if args.variant == 'no-terms'
                             else {'system_prompt_append': SUPPLEMENTS[args.variant]}),
                 'original_request_sha256': hashlib.sha256(request_path.read_bytes()).hexdigest(),
                 'request_sha256': hashlib.sha256((target / 'request.json').read_bytes()).hexdigest(),

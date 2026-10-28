@@ -13,5 +13,6 @@
   "presence_penalty": 0.0,
   "sampling_top_k": -1,
   "min_p": 0.0,
-  "repetition_penalty": 1.0
+  "repetition_penalty": 1.0,
+  "evidence_mode": "segment_ids"
 }

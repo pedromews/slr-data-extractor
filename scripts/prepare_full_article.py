@@ -24,7 +24,7 @@ def main():
     parser.add_argument('--include-retrieval-terms', action='store_true',
                         help='Include retrieval terms in the prompt for a controlled comparison')
     parser.add_argument('--config', type=Path, help='Use an explicit model configuration')
-    parser.add_argument('--field-prompt-style', choices=['json', 'instruction'])
+    parser.add_argument('--field-prompt-style', choices=['instruction'])
     args = parser.parse_args()
     source, target = args.source_run, args.run_dir
     article = json.loads((source / 'article.json').read_text())

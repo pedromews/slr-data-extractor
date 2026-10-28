@@ -37,22 +37,11 @@ class PilotTests(unittest.TestCase):
                 'quote': 'gender bias', 'page_start': 2, 'page_end': 2,
                 'chunk_id': next(c.chunk_id for c in self.chunks if 'gender bias' in c.text), 'section': 'Results'}]}]}
 
-    def test_fragment_section_requires_exact_span_coverage(self):
-        from slr_data_extraction.pipeline import fragment_section
-        page = {'text': 'Intro.\nResults   here.', 'sections': [
-            {'start': 0, 'end': 7, 'section': 'Introduction'},
-            {'start': 7, 'end': 22, 'section': 'Results'}]}
-        self.assertEqual(fragment_section('Results here.', page), 'Results')
-        self.assertIsNone(fragment_section('Intro. Results here.', page))
-        self.assertIsNone(fragment_section('Missing', page))
-        self.assertIsNone(fragment_section('Results here.', {'text': page['text']}))
-        self.assertIsNone(fragment_section('same', {'text': 'same same', 'sections': [
-            {'start': 0, 'end': 9, 'section': 'Results'}]}))
 
     def test_request_labels_each_page_fragment_without_leaking_sections(self):
         prompt = self.prepared[0]['request']['messages'][1]['content']
-        self.assertIn('[page 1; parser section: null] Background only.', prompt)
-        self.assertIn('[page 2; parser section: "Results"] gender bias observed', prompt)
+        self.assertIn('[chunk-0001-e001; page 1; section: null] Background only.', prompt)
+        self.assertIn('[chunk-0002-e001; page 2; section: "Results"] gender bias observed', prompt)
         self.assertNotIn('heuristic section labels', prompt)
 
     def test_valid_evidence_and_section(self):
@@ -103,9 +92,16 @@ class PilotTests(unittest.TestCase):
         return client
 
     def test_raw_response_and_validated_result_are_saved(self):
-        self.pipeline.client = self.client(json.dumps(self.value))
+        from slr_data_extraction.chunking.evidence_segments import build_catalog
+        catalog = build_catalog(self.prepared[0]['selected'])
+        identifier = next(key for key, entry in catalog.items() if 'gender bias' in entry['quote'])
+        response = {'field_name': self.field.name, 'status': 'extracted',
+                    'values': [{'value': 'gender bias', 'evidence_ids': [identifier]}]}
+        self.pipeline.client = self.client(json.dumps(response))
         fields = self.pipeline.extract(self.prepared[:1], self.article['pages'], Audit(self.directory))
         self.assertEqual(fields[0].values[0].value, 'gender bias')
+        self.assertEqual(fields[0].values[0].evidence[0].quote, catalog[identifier]['quote'])
+        self.assertEqual(fields[0].values[0].evidence[0].page_start, 2)
         self.assertTrue((self.directory / 'field-01.raw.txt').exists())
         self.assertTrue((self.directory / 'field-01.validated.json').exists())
         self.assertEqual(json.loads((self.directory / 'field-01.status.json').read_text())['status'], 'completed')

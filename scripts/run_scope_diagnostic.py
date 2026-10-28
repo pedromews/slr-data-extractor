@@ -13,7 +13,7 @@ import httpx
 from openai import OpenAI
 from slr_data_extraction.execution.audit import write_json
 from slr_data_extraction.chunking.evidence_segments import resolve_selection
-from slr_data_extraction.pipeline import ExtractionPipeline, SYSTEM_PROMPT
+from slr_data_extraction.pipeline import ExtractionPipeline
 from slr_data_extraction.definitions.result_definition import FieldExtraction
 from slr_data_extraction.validation.evidence_validation import validate_field
 from dataclasses import asdict
@@ -112,8 +112,7 @@ def verbatim_request(original, generated):
         'For each value, return evidence_ids')
     if not separator:
         raise ValueError('Expected the baseline segment-ID prompt')
-    quote_rules = 'Every value needs verbatim evidence' + SYSTEM_PROMPT.split(
-        'Every value needs verbatim evidence', 1)[1]
+    quote_rules = 'Every value needs verbatim evidence with its exact page range and chunk ID.\nThe value may summarize the finding. Treat evidence.quote as a verbatim source\nexcerpt, not as generated prose.\nCopy one continuous passage from the cited chunk exactly as supplied. Preserve\ncapitalization, spelling, punctuation, citation markers, and hyphenation,\nincluding apparent PDF extraction errors. Do not correct words, capitalize the\nbeginning of an excerpt, remove citations, translate, join separated passages,\nor insert ellipses. Whitespace differences are allowed. Page markers and chunk\nheaders are metadata, not quote text.\nChoose the shortest passage that directly supports the value, up to 400\ncharacters. The passage must identify the relevant concept; avoid a sentence\nthat only refers to it indirectly, such as "these biases". Do not copy entire\nparagraphs when a shorter excerpt suffices. Use separate short evidence entries\nif more context is needed; never shorten a quote by rewriting it.\nUse the chunk_id and page information associated with that exact passage.\nBefore returning, verify that the quote appears in that chunk. If it does not,\nselect an exact passage instead of reconstructing it.\nSection must be the parser label attached to the quoted page fragment, or null.\nUse null when its label is null or the quote spans differently labeled fragments.\n\nUse extracted only with a nonempty values list of supported items.\nUse not_found_in_context only with values=[] when the supplied passages do not\nsupport a defensible value; this does not prove absence from the full paper.\nBefore returning, check that each quote occurs in its cited chunk, every value\nis supported by its evidence, and status is consistent with values.\nExplicitly describe unresolved ambiguity in notes; do not force a value.\nA negative finding is an extracted value, not absence.'
     request['messages'][0]['content'] = (prefix + quote_rules +
         '\nReturn only the JSON object, without Markdown fences or surrounding explanation.')
     old_header = original['messages'][1]['content'].split('\nOutput JSON schema: ', 1)[0]
@@ -132,7 +131,7 @@ def main():
     parser.add_argument('--field', required=True)
     parser.add_argument('--model-config', type=Path, help='Override only model identity; preserve the saved request parameters')
     parser.add_argument('--batch', type=int, default=2)
-    parser.add_argument('--variant', choices=[*SUPPLEMENTS, 'short', 'no-terms', 'verbatim'], required=True)
+    parser.add_argument('--variant', choices=[*SUPPLEMENTS, 'short', 'no-terms'], required=True)
     args = parser.parse_args()
     source, target = args.prepared_run, args.run_dir
     schema = json.loads((source / 'schema.json').read_text())

@@ -1,4 +1,4 @@
-"""Four-call frozen P8 diagnostic; never retries or changes the extraction prompt."""
+"""Frozen P8 thinking comparison; never retries or changes the extraction prompt."""
 import argparse
 import copy
 import hashlib
@@ -36,6 +36,8 @@ def main():
     parser.add_argument('--prepared-run', required=True, type=Path)
     parser.add_argument('--run-dir', required=True, type=Path)
     parser.add_argument('--max-tokens', type=int, default=4096)
+    parser.add_argument('--all-batches', action='store_true',
+                        help='Compare every frozen batch instead of batches 3 and 18')
     args = parser.parse_args()
     if args.max_tokens < 1:
         parser.error('--max-tokens must be positive')
@@ -54,7 +56,11 @@ def main():
     shutil.copyfile(__file__, target / 'diagnostic-script.py')
     jobs = []
     hashes = {}
-    for batch in (3, 18):
+    plan = json.loads((source / 'batches.json').read_text())
+    batches = list(range(1, len(plan) + 1)) if args.all_batches else [3, 18]
+    if not plan or any(b > len(plan) for b in batches):
+        raise ValueError('Selected batches unavailable in frozen plan')
+    for batch in batches:
         path = source / f'batch-{batch:02d}.field-{index:02d}.request.json'
         original = json.loads(path.read_text())
         if 'response_format' in original or original['model'] != config['model_id']:
@@ -74,8 +80,9 @@ def main():
             jobs.append((name, req, thinking, {i: catalog[i] for i in ids}))
     manifest = {'status': 'checking_tokens', 'started_at': datetime.now(timezone.utc).isoformat(),
                 'source_run': str(source.resolve()), 'original_request_sha256': hashes,
-                'purpose': 'Development thinking comparison; frozen prompt/schema; two batches',
-                'max_output_tokens_both_arms': args.max_tokens, 'planned_calls': 4,
+                'purpose': 'Development thinking comparison; frozen prompt/schema',
+                'selected_batches': batches, 'article_complete': args.all_batches,
+                'max_output_tokens_both_arms': args.max_tokens, 'planned_calls': len(jobs),
                 'generation_calls_attempted': 0, 'failure_policy': 'No retries; preserve each failure'}
     write_json(target / 'manifest.json', manifest)
     try:

@@ -19,13 +19,17 @@ def main():
     parser.add_argument('--source-run', required=True, type=Path)
     parser.add_argument('--run-dir', required=True, type=Path)
     parser.add_argument('--max-message-chars', type=int, default=14000)
-    parser.add_argument('--batch-plan', type=Path, help='Reuse frozen chunk IDs; token verification still required')
+    grouping = parser.add_mutually_exclusive_group()
+    grouping.add_argument('--batch-plan', type=Path, help='Reuse frozen chunk IDs; token verification still required')
+    grouping.add_argument('--chunks-per-batch', type=int, help='Group consecutive chunks by count; token verification still required')
     parser.add_argument('--schema', type=Path, help='Override the saved review schema explicitly')
     parser.add_argument('--include-retrieval-terms', action='store_true',
                         help='Include retrieval terms in the prompt for a controlled comparison')
     parser.add_argument('--config', type=Path, help='Use an explicit model configuration')
     parser.add_argument('--field-prompt-style', choices=['instruction'])
     args = parser.parse_args()
+    if args.chunks_per_batch is not None and args.chunks_per_batch < 1:
+        parser.error('--chunks-per-batch must be positive')
     source, target = args.source_run, args.run_dir
     article = json.loads((source / 'article.json').read_text())
     config_path = args.config or source / 'config.json'
@@ -57,6 +61,9 @@ def main():
             raise ValueError('Frozen plan must cover all chunks once in document order')
         by_id = {c.chunk_id: c for c in chunks}
         batches = [[by_id[i] for i in batch] for batch in frozen]
+    elif args.chunks_per_batch is not None:
+        size = args.chunks_per_batch
+        batches = [chunks[start:start + size] for start in range(0, len(chunks), size)]
     else:
         batches = plan_batches(chunks, request, pipeline.review.fields,
                                max_message_chars=args.max_message_chars)
@@ -95,9 +102,10 @@ def main():
         'schema_source': str(schema_path.resolve()),
         'schema_sha256': hashlib.sha256((target / 'schema.json').read_bytes()).hexdigest(),
         'source_sha256': code_hash(), 'prompt_version': pipeline.prompt_version,
-        'batching_version': BATCHING_VERSION, 'segment_version': SEGMENT_VERSION,
+        'batching_version': ('2-fixed-chunk-count' if args.chunks_per_batch else BATCHING_VERSION),
+        'chunks_per_batch': args.chunks_per_batch, 'segment_version': SEGMENT_VERSION,
         'context_policy': 'all chunks in fixed document-order batches; no retrieval filtering',
-        'max_message_chars': None if args.batch_plan else args.max_message_chars,
+        'max_message_chars': None if args.batch_plan or args.chunks_per_batch else args.max_message_chars,
         'reused_batch_plan': str(args.batch_plan.resolve()) if args.batch_plan else None,
         'batch_plan_sha256': hashlib.sha256((target / 'batches.json').read_bytes()).hexdigest(),
         'source_chunks_sha256': hashlib.sha256((source / 'chunks.json').read_bytes()).hexdigest(),

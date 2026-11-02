@@ -36,6 +36,8 @@ def main():
     parser.add_argument('--prepared-run', required=True, type=Path)
     parser.add_argument('--run-dir', required=True, type=Path)
     parser.add_argument('--max-tokens', type=int, default=4096)
+    parser.add_argument('--field', default='reported_impacts',
+                        choices=['reported_impacts', 'bias_types', 'llm_systems'])
     parser.add_argument('--all-batches', action='store_true',
                         help='Compare every frozen batch instead of batches 3 and 18')
     args = parser.parse_args()
@@ -44,7 +46,7 @@ def main():
     source, target = args.prepared_run, args.run_dir
     config = json.loads((source / 'config.json').read_text())
     schema = json.loads((source / 'schema.json').read_text())
-    field = 'reported_impacts'
+    field = args.field
     index = next(i for i, f in enumerate(schema['fields'], 1) if f['name'] == field)
     catalog = json.loads((source / 'evidence-catalog.json').read_text())
     base = config['base_url'].rstrip('/')
@@ -82,6 +84,7 @@ def main():
                 'source_run': str(source.resolve()), 'original_request_sha256': hashes,
                 'purpose': 'Development thinking comparison; frozen prompt/schema',
                 'selected_batches': batches, 'article_complete': args.all_batches,
+                'field': field,
                 'max_output_tokens_both_arms': args.max_tokens, 'planned_calls': len(jobs),
                 'generation_calls_attempted': 0, 'failure_policy': 'No retries; preserve each failure'}
     write_json(target / 'manifest.json', manifest)

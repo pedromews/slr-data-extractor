@@ -1,4 +1,4 @@
-"""Frozen P8 thinking comparison; never retries or changes the extraction prompt."""
+"""Frozen thinking comparison; never retries or changes the extraction prompt."""
 import argparse
 import copy
 import hashlib
@@ -37,7 +37,7 @@ def main():
     parser.add_argument('--run-dir', required=True, type=Path)
     parser.add_argument('--max-tokens', type=int, default=4096)
     parser.add_argument('--field', default='reported_impacts',
-                        choices=['reported_impacts', 'bias_types', 'llm_systems'])
+                        help='Field name from the frozen review schema')
     parser.add_argument('--all-batches', action='store_true',
                         help='Compare every frozen batch instead of batches 3 and 18')
     args = parser.parse_args()
@@ -47,7 +47,10 @@ def main():
     config = json.loads((source / 'config.json').read_text())
     schema = json.loads((source / 'schema.json').read_text())
     field = args.field
-    index = next(i for i, f in enumerate(schema['fields'], 1) if f['name'] == field)
+    names = [f['name'] for f in schema['fields']]
+    if field not in names:
+        parser.error(f'Unknown field {field!r}; available fields: {names}')
+    index = names.index(field) + 1
     catalog = json.loads((source / 'evidence-catalog.json').read_text())
     base = config['base_url'].rstrip('/')
     if base != 'http://127.0.0.1:8000/v1' or config['model_id'] != 'Qwen/Qwen3-14B-AWQ':

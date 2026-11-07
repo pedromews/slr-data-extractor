@@ -87,7 +87,7 @@ def main():
         request = json.loads(path.read_text())
         expected = pipeline._request(field, selected, article['pages'])
         expected.pop('response_format', None)
-        expected['extra_body']['chat_template_kwargs'] = {'enable_thinking': False}
+        expected['extra_body']['chat_template_kwargs'] = {'enable_thinking': config.get('enable_thinking', False)}
         if request != expected:
             raise ValueError('Current code/config cannot reproduce approved request')
         items.append({'field': field, 'selected': selected, 'request': request})
@@ -129,7 +129,7 @@ def main():
                     if name == 'server-models' and config['model_id'] not in [m['id'] for m in value['data']]:
                         raise ValueError('Configured model is not served')
                     write_json(target / f'{name}.json', value)
-            with OpenAI(base_url=base, api_key='EMPTY', max_retries=0, timeout=300) as client:
+            with OpenAI(base_url=base, api_key='EMPTY', max_retries=0, timeout=600) as client:
                 pipeline.client = client
                 for bi in selected_batches:
                     item = items[bi - 1]

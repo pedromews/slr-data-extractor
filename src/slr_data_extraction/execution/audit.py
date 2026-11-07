@@ -16,6 +16,11 @@ class FieldRecord:
     def raw(self, text):
         self.prefix.with_suffix('.raw.txt').write_text(text, encoding='utf-8')
 
+    def response_parts(self, reasoning, final, usage):
+        self.prefix.with_suffix('.reasoning.txt').write_text(reasoning, encoding='utf-8')
+        self.prefix.with_suffix('.final.txt').write_text(final, encoding='utf-8')
+        write_json(self.prefix.with_suffix('.usage.json'), usage)
+
     def validated(self, value):
         write_json(self.prefix.with_suffix('.validated.json'), value)
 

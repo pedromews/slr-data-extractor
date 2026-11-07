@@ -50,7 +50,7 @@ def main():
     def request(field, selected):
         result = pipeline._request(field, selected, article['pages'])
         result.pop('response_format', None)
-        result['extra_body']['chat_template_kwargs'] = {'enable_thinking': False}
+        result['extra_body']['chat_template_kwargs'] = {'enable_thinking': config.get('enable_thinking', False)}
         return result
 
     if args.batch_plan:

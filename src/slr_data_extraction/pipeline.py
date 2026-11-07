@@ -7,6 +7,7 @@ from .chunking.chunk_selection import SELECTION_VERSIONS
 from .definitions.result_definition import ArticleExtraction
 from .definitions.schema_definition import load_schema, fingerprint
 from .validation.evidence_validation import validate_field
+from .execution.response import separate_content
 
 from .chunking.evidence_segments import build_catalog, resolve_selection, SelectedField
 
@@ -72,6 +73,12 @@ class ExtractionPipeline:
             self.prompt_version += '-with-terms-control'
         if config.get('field_prompt_style', 'instruction') != 'instruction':
             raise ValueError('field_prompt_style must be instruction for prompt 7.0; prepare a new run')
+        self.enable_thinking = config.get('enable_thinking', False)
+        self.constrained_generation = config.get('constrained_generation', True)
+        if not isinstance(self.enable_thinking, bool) or not isinstance(self.constrained_generation, bool):
+            raise ValueError('Generation switches must be booleans')
+        if self.enable_thinking and self.constrained_generation:
+            raise ValueError('Thinking requires unconstrained generation in this executor')
         self.model_id, self.client = config['model_id'], client
 
     def _request(self, definition, selected, pages):
@@ -88,7 +95,7 @@ class ExtractionPipeline:
                              if self.include_retrieval_terms else ''),
             output_schema=json.dumps(output_schema),
             passages='\n\n'.join(passages))
-        return dict(model=self.model_id,
+        request = dict(model=self.model_id,
                     messages=[{'role': 'system', 'content': SYSTEM_PROMPT},
                               {'role': 'user', 'content': prompt}],
                     temperature=self.config['temperature'], top_p=self.config['top_p'],
@@ -99,6 +106,11 @@ class ExtractionPipeline:
                         'name': 'extraction', 'schema': output_schema}},
                     extra_body={'top_k': self.config['sampling_top_k'], 'min_p': self.config['min_p'],
                                 'repetition_penalty': self.config['repetition_penalty']})
+        if not self.constrained_generation:
+            request.pop('response_format', None)
+        if 'enable_thinking' in self.config:
+            request['extra_body']['chat_template_kwargs'] = {'enable_thinking': self.enable_thinking}
+        return request
 
     def prepare(self, article):
         pages = article['pages']
@@ -135,7 +147,10 @@ class ExtractionPipeline:
                 choice = response.choices[0]
                 if choice.finish_reason != 'stop' or choice.message.refusal:
                     raise ValueError(f'Incomplete/refused generation: {choice.finish_reason}')
-                result = resolve_selection(choice.message.content or '', build_catalog(item['selected']))
+                thinking = item['request'].get('extra_body', {}).get('chat_template_kwargs', {}).get('enable_thinking', False)
+                reasoning, final = separate_content(choice.message.model_dump(), thinking)
+                record.response_parts(reasoning, final, response.usage.model_dump() if response.usage else None)
+                result = resolve_selection(final, build_catalog(item['selected']))
                 validate_field(result, item['field'], item['selected'], pages)
                 record.validated(result.model_dump())
                 results.append(result)

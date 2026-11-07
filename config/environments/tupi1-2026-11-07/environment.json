@@ -1,0 +1,20 @@
+{
+  "captured_date": "2026-11-07",
+  "node": "tupi1",
+  "python": "3.11.2",
+  "kernel": "Linux 6.1.0-45-amd64",
+  "gpu": "NVIDIA GeForce RTX 4090",
+  "gpu_memory_mib": 24564,
+  "driver_version": "590.44.01",
+  "capture_method": "pip freeze in live client/server virtual environments; command from live API-server process",
+  "verification_run": "runs/smoke-p1-official-thinking-bias2-001",
+  "verification_code_commit": "6bd6f08",
+  "tag": "implementation-freeze-v1.0",
+  "files_sha256": {
+    "config/models/qwen3-14b-awq-final.json": "c3531ee10356b53a47fe5dfb3c6adad4a43a411a6e458bfcc75b6a67affe697b",
+    "config/gender_and_beyond_schema.json": "5ea7e34ed8b49bc9cc4b0c2bb9e40f39e71fa9bfea26e4621b18b13b08956c6e",
+    "config/environments/tupi1-2026-11-07/client-requirements.txt": "2246dea229742756dfffa8e2ca04c98bc355f778ba0fd63cd5bb491f53735c83",
+    "config/environments/tupi1-2026-11-07/server-requirements.txt": "209a96cf3cf9590dbaeb24cc6ab9e21fb4ea9bccf21076c339f673e5ddf47099",
+    "config/environments/tupi1-2026-11-07/server-command.txt": "8c6b915b52d8931b2cd10617f33e14d8a5f9c598b057f16a92d765e529dbab41"
+  }
+}

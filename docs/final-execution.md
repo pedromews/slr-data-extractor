@@ -7,7 +7,7 @@ The official full-article entry point is `scripts/run_article.py`. The older `ex
 - Prompt 7.3, instruction template, retrieval terms included in the prompt.
 - Schema 4.6 (specialist revisions must receive a new version before final evaluation).
 - Qwen/Qwen3-14B-AWQ, revision 31c69efc29464b6bb0aee1398b5a7b50a99340c3.
-- vLLM 0.11.0; server environment used during comparison: transformers 4.57.6, tokenizers 0.22.2. Server environment lock remains to be archived before the final freeze.
+- vLLM 0.11.0; server environment used during comparison: transformers 4.57.6, tokenizers 0.22.2. The live client/server package snapshots and launch command are archived in `config/environments/tupi1-2026-11-07/`.
 - Thinking enabled, unconstrained generation, 4,096 output tokens including reasoning, 8,192 context tokens.
 - One chunk per field per call, all chunks in document order, including references. No retrieval filtering in generation.
 - No automatic retry, output repair, semantic deduplication, or LLM reviewer.
@@ -52,4 +52,27 @@ The previous direct pipeline requested response_format, while the batch scripts 
 
 Local replay of the saved P1 schema-4.6 bias_types batch 2 thinking-on response: newly constructed request exactly matches the diagnostic request; final result exactly matches the saved diagnostic result; full source validation succeeds; reasoning/final/usage artifacts are written. Missing or unfinished reasoning is rejected. Existing pilot and batch-execution checks passed (14 checks); no new experiment or interruption campaign was added.
 
-Remaining before freezing: run the short live PCAD check, archive server dependencies/launch metadata, commit the chosen procedure, and obtain specialist approval of schema/reference/evaluation criteria. Do not tune using the held-out papers.
+## Implementation freeze
+
+Tag: `implementation-freeze-v1.0`. This freezes the technical implementation and selected configuration, not specialist approval of the schema, human references or evaluation criteria. Any later approved change must receive a new version and new run directories. Do not tune using held-out papers.
+
+The live confirmation `runs/smoke-p1-official-thinking-bias2-001` completed on tupi1 with code 6bd6f08. All 208 prepared requests passed token verification (minimum spare context: 522 tokens). Exactly one generation completed in 5.88 seconds. Raw response, reasoning, final JSON, resolved evidence and batch provenance were saved. No article-wide result was emitted for the partial run.
+
+The new request was exactly equal to the previous schema-4.6 diagnostic request. The model nevertheless grouped gender, ethnicity, age and disability into one value. Thinking does not guarantee atomic concepts or identical results across executions/environments. The cause of this variation was not isolated; no retry was used to select a preferred response.
+
+### Recreating the recorded environment
+
+The snapshots are inventories of installed package versions, not wheel archives or hash-locked installers. They do not guarantee bitwise reproduction or compatibility with every node. Use Python 3.11.2 and retain server launch logs for each execution.
+
+```bash
+python3.11 -m venv "$SCRATCH/slr-client-venv"
+"$SCRATCH/slr-client-venv/bin/python" -m pip install -r config/environments/tupi1-2026-11-07/client-requirements.txt
+python3.11 -m venv "$SCRATCH/slr-vllm-venv"
+"$SCRATCH/slr-vllm-venv/bin/python" -m pip install -r config/environments/tupi1-2026-11-07/server-requirements.txt
+export HF_HOME="$SCRATCH/huggingface"
+"$SCRATCH/slr-vllm-venv/bin/python" scripts/serve_pilot.py \
+  --config config/models/qwen3-14b-awq-final.json \
+  --log-dir runs/server-frozen-001
+```
+
+`server-command.txt` records the resolved API-server command used in the successful tupi1 check. `environment.json` records hardware, driver, Python and configuration/package-snapshot SHA-256 hashes. Model weights are pinned by Hugging Face revision in the model config. The server and client are separate environments; their OpenAI SDK versions differ intentionally in this captured inventory.

@@ -1,0 +1,1 @@
+/scratch/pomews/slr-vllm-venv/bin/python -m vllm.entrypoints.openai.api_server --model Qwen/Qwen3-14B-AWQ --revision 31c69efc29464b6bb0aee1398b5a7b50a99340c3 --tokenizer-revision 31c69efc29464b6bb0aee1398b5a7b50a99340c3 --dtype bfloat16 --max-model-len 8192 --generation-config vllm --seed 42 --host 127.0.0.1 --port 8000 --max-num-seqs 1 --gpu-memory-utilization 0.90

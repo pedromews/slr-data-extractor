@@ -48,7 +48,7 @@ There are three different units: a **chunk** is a document/context unit; an **ev
 | `scripts/check_batch_tokens.py` | Prepared requests → token approval | Calls `/tokenize`, checks input + reserved output against context limit, records request hashes. No generation. |
 | `scripts/run_batch_field.py` | Approved requests → one field across batches | Current execution path. No automatic retry; resume only pending calls. Consolidates exact value/evidence duplicates, not semantic synonyms. |
 
-`run_diagnostic.py` and `run_minimal_impacts.py` are experimental helpers. The latter deliberately selects two known P1 passages and must not be treated as a normal end-to-end extraction result. `compare_selection.py` supports the lexical/BM25 experiment.
+Development-only diagnostic scripts were removed after the implementation freeze. Their historical versions remain available in Git at `implementation-freeze-v1.0`. For final experiments, use `scripts/run_article.py` and the procedure in [final-execution.md](final-execution.md).
 
 ## 3. Where the model is actually called
 
